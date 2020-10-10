@@ -1,5 +1,5 @@
 ---
-title: "TKIdol_P2"
+title: "Weekly Analysis"
 author: "Todd Idol"
 date: "10/10/2020"
 always_allow_html: true
@@ -20,7 +20,7 @@ library(rmarkdown)
 library(knitr)
 ```
 
-# Link to Project Repo
+# Link to Project Re
 
 [Link to repo](https://github.com/tkidol/ST558-Project-2)
 
