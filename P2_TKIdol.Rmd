@@ -8,26 +8,37 @@ output:
     toc_depth: 2
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+rmarkdown::find_pandoc(version = '2.10.1')
+options(knitr.duplicate.label = "allow")
+library(tidyverse)
+library(jsonlite)
+library(httr)
+library(rmarkdown)
+library(knitr)
 ```
 
-## R Markdown
+# Project Repo
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Packages
 
-```{r cars}
-summary(cars)
-```
+## Tidyverse
 
-## Including Plots
+The workhorse of this project for 3 main core packages: DPLYR - manipulated all of my data (selects, joins, filter, new variables... ), Tibble for rendering Data Frames more effectively, & () ggplot2 for discrete & continuous data plots
 
-You can also embed plots, for example:
+## Rmarkdown 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+Key to the project for the Rmd file itself including the knitr:: functions for consumable object output (kable) & README.md github doc output through render()
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## JSONLite
+
+PUsed to converting API pulled JSON data into R objects
+
+## HTTR
+
+
+Per R documentation site: Functions for the most important http verbs: GET(), HEAD(), PATCH(), PUT(), DELETE() and POST().
