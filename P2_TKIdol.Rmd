@@ -3,7 +3,7 @@ title: "Bicycle Analysis"
 author: "Todd Idol"
 date: "10/10/2020"
 output: 
-   github_document:
+   rmarkdown::github_document:
     toc: true
     toc_depth: 2
 ---
@@ -42,3 +42,11 @@ PUsed to converting API pulled JSON data into R objects
 
 
 Per R documentation site: Functions for the most important http verbs: GET(), HEAD(), PATCH(), PUT(), DELETE() and POST().
+
+# Data
+
+```{r, data}
+bikeData <- read.csv("day.csv")
+bikeData_Monday <- bikeData %>% filter(weekday == 1)
+head(bikeData_Monday)
+```
