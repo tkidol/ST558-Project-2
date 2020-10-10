@@ -46,7 +46,7 @@ Per R documentation site: Functions for the most important http verbs: GET(), HE
 # Data
 
 ```{r, data}
-bikeData <- read.csv("day.csv")
+bikeData <- read.csv("hour.csv")
 bikeData_Monday <- bikeData %>% filter(weekday == 1)
 head(bikeData_Monday)
 ```
