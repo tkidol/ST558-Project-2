@@ -3,13 +3,20 @@ Weekly Analysis
 Todd Idol
 10/10/2020
 
--   [Link to Project Re](#link-to-project-re)
+-   [Link to Project Repot](#link-to-project-repot)
+    -   [Links to Sub Files](#links-to-sub-files)
     -   [Including Plots](#including-plots)
 
-Link to Project Re
-==================
+Link to Project Repot
+=====================
 
 [Link to repo](https://github.com/tkidol/ST558-Project-2)
+
+Links to Sub Files
+------------------
+
+[file
+1](https://github.com/tkidol/ST558-Project-2/blob/main/TKIdol_P2.md)
 
 This is an R Markdown document. Markdown is a simple formatting syntax
 for authoring HTML, PDF, and MS Word documents. For more details on
