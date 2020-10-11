@@ -27,6 +27,10 @@ library(caret)
 
 Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
 
+# Weekly Analysis
+
+The analysis for [Monday is available here](MondayAnalysis.md).
+
 # Packages
 
 ## Tidyverse
@@ -56,7 +60,7 @@ bikeData <- bikeData  %>% filter(weekday == params$day)
 
 # Changing weekday variable from numeric to character
 
-head(bikeData)
+knitr::kable(head(bikeData))
 ```
 # Create Parameters & Render
 

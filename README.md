@@ -4,6 +4,7 @@ Todd Idol
 10/10/2020
 
 -   [Project Repo](#project-repo)
+-   [Weekly Analysis](#weekly-analysis)
 -   [Packages](#packages)
     -   [Tidyverse](#tidyverse)
     -   [Rmarkdown](#rmarkdown)
@@ -16,6 +17,11 @@ Project Repo
 ============
 
 Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
+
+Weekly Analysis
+===============
+
+The analysis for [Monday is available here](MondayAnalysis.md).
 
 Packages
 ========
@@ -56,22 +62,16 @@ Data
 
     # Changing weekday variable from numeric to character
 
-    head(bikeData)
+    knitr::kable(head(bikeData))
 
-    ##   instant     dteday season yr mnth hr holiday weekday workingday weathersit temp  atemp  hum windspeed
-    ## 1      48 2011-01-03      1  0    1  0       0       1          1          1 0.22 0.1970 0.44    0.3582
-    ## 2      49 2011-01-03      1  0    1  1       0       1          1          1 0.20 0.1667 0.44    0.4179
-    ## 3      50 2011-01-03      1  0    1  4       0       1          1          1 0.16 0.1364 0.47    0.3881
-    ## 4      51 2011-01-03      1  0    1  5       0       1          1          1 0.16 0.1364 0.47    0.2836
-    ## 5      52 2011-01-03      1  0    1  6       0       1          1          1 0.14 0.1061 0.50    0.3881
-    ## 6      53 2011-01-03      1  0    1  7       0       1          1          1 0.14 0.1364 0.50    0.1940
-    ##   cnt
-    ## 1   5
-    ## 2   2
-    ## 3   1
-    ## 4   3
-    ## 5  30
-    ## 6  64
+| instant | dteday     | season |  yr | mnth | hr  | holiday | weekday | workingday | weathersit | temp |  atemp |  hum | windspeed | cnt |
+|--------:|:-----------|:-------|----:|:-----|:----|--------:|:--------|:-----------|:-----------|-----:|-------:|-----:|----------:|----:|
+|      48 | 2011-01-03 | 1      |   0 | 1    | 0   |       0 | 1       | 1          | 1          | 0.22 | 0.1970 | 0.44 |    0.3582 |   5 |
+|      49 | 2011-01-03 | 1      |   0 | 1    | 1   |       0 | 1       | 1          | 1          | 0.20 | 0.1667 | 0.44 |    0.4179 |   2 |
+|      50 | 2011-01-03 | 1      |   0 | 1    | 4   |       0 | 1       | 1          | 1          | 0.16 | 0.1364 | 0.47 |    0.3881 |   1 |
+|      51 | 2011-01-03 | 1      |   0 | 1    | 5   |       0 | 1       | 1          | 1          | 0.16 | 0.1364 | 0.47 |    0.2836 |   3 |
+|      52 | 2011-01-03 | 1      |   0 | 1    | 6   |       0 | 1       | 1          | 1          | 0.14 | 0.1061 | 0.50 |    0.3881 |  30 |
+|      53 | 2011-01-03 | 1      |   0 | 1    | 7   |       0 | 1       | 1          | 1          | 0.14 | 0.1364 | 0.50 |    0.1940 |  64 |
 
 Create Parameters & Render
 ==========================
