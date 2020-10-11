@@ -3,9 +3,11 @@ title: "Bicycle Analysis"
 author: "Todd Idol"
 date: "10/10/2020"
 output: 
-   rmarkdown::github_document:
+   github_document:
     toc: true
     toc_depth: 2
+params:
+  day: 1
 ---
 
 
@@ -18,6 +20,7 @@ library(jsonlite)
 library(httr)
 library(rmarkdown)
 library(knitr)
+library(caret)
 ```
 
 # Project Repo
@@ -34,19 +37,31 @@ The workhorse of this project for 3 main core packages: DPLYR - manipulated all 
 
 Key to the project for the Rmd file itself including the knitr:: functions for consumable object output (kable) & README.md github doc output through render()
 
-## JSONLite
+## Caret
 
-PUsed to converting API pulled JSON data into R objects
+Used to create standardized train/test data & create controls and tuning for LM & GLM analysis
 
-## HTTR
-
-
-Per R documentation site: Functions for the most important http verbs: GET(), HEAD(), PATCH(), PUT(), DELETE() and POST().
+# Set Parameters & Knit
 
 # Data
 
 ```{r, data}
+
 bikeData <- read.csv("hour.csv")
-bikeData_Monday <- bikeData %>% filter(weekday == 1)
-head(bikeData_Monday)
+
+# removing casual & registered vars since they will not be used for modling
+bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(season = as.factor(season), mnth= as.factor(mnth), hr = as.factor(hr), weekday = as.factor(weekday), workingday = as.factor(workingday), weathersit = as.factor(weathersit))
+
+bikeData <- bikeData  %>% filter(weekday == params$day)
+
+# Changing weekday variable from numeric to character
+
+head(bikeData)
 ```
+# Create Parameters & Render
+
+#{r, parameters}
+
+
+
+
