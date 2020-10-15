@@ -604,45 +604,175 @@ body {
 <p>Todd Idol 10/10/2020</p>
 <ul>
 <li><a href="#project-repo">Project Repo</a></li>
+<li><a href="#weekly-analysis">Weekly Analysis</a></li>
 <li><a href="#packages">Packages</a>
 <ul>
 <li><a href="#tidyverse">Tidyverse</a></li>
 <li><a href="#rmarkdown">Rmarkdown</a></li>
-<li><a href="#jsonlite">JSONLite</a></li>
-<li><a href="#httr">HTTR</a></li>
+<li><a href="#caret">Caret</a></li>
 </ul></li>
+<li><a href="#set-parameters-knit">Set Parameters &amp; Knit</a></li>
 <li><a href="#data">Data</a></li>
+<li><a href="#create-parameters-render">Create Parameters &amp; Render</a></li>
 </ul>
 <h1 id="project-repo">Project Repo</h1>
 <p>Find the project repo <a href="https://github.com/tkidol/ST558-Project-2">here</a>.</p>
+<h1 id="weekly-analysis">Weekly Analysis</h1>
+<ul>
+<li><p>The analysis for <a href="SundayAnalysis.md">Sunday is available here</a>.</p></li>
+<li><p>The analysis for <a href="MondayAnalysis.md">Monday is available here</a>.</p></li>
+<li><p>The analysis for <a href="TuesdayAnalysis.md">Tuesday is available here</a>.</p></li>
+<li><p>The analysis for <a href="Wedesdaynalysis.md">Wednesday is available here</a>.</p></li>
+<li><p>The analysis for <a href="ThursdayAnalysis.md">Thursday is available here</a>.</p></li>
+<li><p>The analysis for <a href="FridayAnalysis.md">Friday is available here</a>.</p></li>
+<li><p>The analysis for <a href="SaturdayAnalysis.md">Saturday is available here</a>.</p></li>
+</ul>
 <h1 id="packages">Packages</h1>
 <h2 id="tidyverse">Tidyverse</h2>
 <p>The workhorse of this project for 3 main core packages: DPLYR - manipulated all of my data (selects, joins, filter, new variables… ), Tibble for rendering Data Frames more effectively, &amp; () ggplot2 for discrete &amp; continuous data plots</p>
 <h2 id="rmarkdown">Rmarkdown</h2>
 <p>Key to the project for the Rmd file itself including the knitr:: functions for consumable object output (kable) &amp; README.md github doc output through render()</p>
-<h2 id="jsonlite">JSONLite</h2>
-<p>PUsed to converting API pulled JSON data into R objects</p>
-<h2 id="httr">HTTR</h2>
-<p>Per R documentation site: Functions for the most important http verbs: GET(), HEAD(), PATCH(), PUT(), DELETE() and POST().</p>
+<h2 id="caret">Caret</h2>
+<p>Used to create standardized train/test data &amp; create controls and tuning for LM &amp; GLM analysis</p>
+<h1 id="set-parameters--knit">Set Parameters &amp; Knit</h1>
 <h1 id="data">Data</h1>
 <pre><code>bikeData &lt;- read.csv(&quot;hour.csv&quot;)
-bikeData_Monday &lt;- bikeData %&gt;% filter(weekday == 1)
-head(bikeData_Monday)
 
-##   instant     dteday season yr mnth hr holiday weekday workingday weathersit temp  atemp  hum windspeed
-## 1      48 2011-01-03      1  0    1  0       0       1          1          1 0.22 0.1970 0.44    0.3582
-## 2      49 2011-01-03      1  0    1  1       0       1          1          1 0.20 0.1667 0.44    0.4179
-## 3      50 2011-01-03      1  0    1  4       0       1          1          1 0.16 0.1364 0.47    0.3881
-## 4      51 2011-01-03      1  0    1  5       0       1          1          1 0.16 0.1364 0.47    0.2836
-## 5      52 2011-01-03      1  0    1  6       0       1          1          1 0.14 0.1061 0.50    0.3881
-## 6      53 2011-01-03      1  0    1  7       0       1          1          1 0.14 0.1364 0.50    0.1940
-##   casual registered cnt
-## 1      0          5   5
-## 2      0          2   2
-## 3      0          1   1
-## 4      0          3   3
-## 5      0         30  30
-## 6      1         63  64</code></pre>
+# removing casual &amp; registered vars since they will not be used for modling
+bikeData &lt;- bikeData  %&gt;% select(everything(), -c(&quot;casual&quot;, &quot;registered&quot;)) %&gt;% mutate(season = as.factor(season), mnth= as.factor(mnth), hr = as.factor(hr), weekday = as.factor(weekday), workingday = as.factor(workingday), weathersit = as.factor(weathersit))
+
+bikeData &lt;- bikeData  %&gt;% filter(weekday == params$day)
+
+# Changing weekday variable from numeric to character
+
+knitr::kable(head(bikeData))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">instant</th>
+<th align="left">dteday</th>
+<th align="left">season</th>
+<th align="right">yr</th>
+<th align="left">mnth</th>
+<th align="left">hr</th>
+<th align="right">holiday</th>
+<th align="left">weekday</th>
+<th align="left">workingday</th>
+<th align="left">weathersit</th>
+<th align="right">temp</th>
+<th align="right">atemp</th>
+<th align="right">hum</th>
+<th align="right">windspeed</th>
+<th align="right">cnt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">48</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">0</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.22</td>
+<td align="right">0.1970</td>
+<td align="right">0.44</td>
+<td align="right">0.3582</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="right">49</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.20</td>
+<td align="right">0.1667</td>
+<td align="right">0.44</td>
+<td align="right">0.4179</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="right">50</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">4</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.16</td>
+<td align="right">0.1364</td>
+<td align="right">0.47</td>
+<td align="right">0.3881</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="right">51</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">5</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.16</td>
+<td align="right">0.1364</td>
+<td align="right">0.47</td>
+<td align="right">0.2836</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="right">52</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">6</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.14</td>
+<td align="right">0.1061</td>
+<td align="right">0.50</td>
+<td align="right">0.3881</td>
+<td align="right">30</td>
+</tr>
+<tr class="even">
+<td align="right">53</td>
+<td align="left">2011-01-03</td>
+<td align="left">1</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">7</td>
+<td align="right">0</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.14</td>
+<td align="right">0.1364</td>
+<td align="right">0.50</td>
+<td align="right">0.1940</td>
+<td align="right">64</td>
+</tr>
+</tbody>
+</table>
+<h1 id="create-parameters--render">Create Parameters &amp; Render</h1>
+<p>#{r, parameters}</p>
 
 </body>
 </html>

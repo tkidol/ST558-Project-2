@@ -4,18 +4,38 @@ Todd Idol
 10/10/2020
 
 -   [Project Repo](#project-repo)
+-   [Weekly Analysis](#weekly-analysis)
 -   [Packages](#packages)
     -   [Tidyverse](#tidyverse)
     -   [Rmarkdown](#rmarkdown)
     -   [Caret](#caret)
 -   [Set Parameters & Knit](#set-parameters-knit)
+-   [Introduction](#introduction)
 -   [Data](#data)
--   [Create Parameters & Render](#create-parameters-render)
+-   [Summarizations](#summarizations)
+    -   [Summaries for Season & Weather](#summaries-for-season-weather)
 
 Project Repo
 ============
 
 Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
+
+Weekly Analysis
+===============
+
+-   The analysis for [Sunday is available here](SundayAnalysis.md).
+
+-   The analysis for [Monday is available here](MondayAnalysis.md).
+
+-   The analysis for [Tuesday is available here](TuesdayAnalysis.md).
+
+-   The analysis for [Wednesday is available here](Wedesdaynalysis.md).
+
+-   The analysis for [Thursday is available here](ThursdayAnalysis.md).
+
+-   The analysis for [Friday is available here](FridayAnalysis.md).
+
+-   The analysis for [Saturday is available here](SaturdayAnalysis.md).
 
 Packages
 ========
@@ -44,36 +64,370 @@ for LM & GLM analysis
 Set Parameters & Knit
 =====================
 
+Introduction
+============
+
+You should have an introduction section that briefly describes the data
+and the variables you have to work with (no need to discuss all of them,
+just the ones you want to use). If you are analyzing the bike share
+data, do not use the casual and registered variables to do any modeling!
+You should also mention the purpose of your analysis and the methods
+you’ll use (no need to detail them here) for analysis.
+
 Data
 ====
 
     bikeData <- read.csv("hour.csv")
 
-    # removing casual & registered vars since they will not be used for modling
-    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(season = as.factor(season), mnth= as.factor(mnth), hr = as.factor(hr), weekday = as.factor(weekday), workingday = as.factor(workingday), weathersit = as.factor(weathersit))
+    # removing casual & registered vars since they will not be used for modeling
+    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(weekday = as.factor(weekday))
 
+    # filtering for individual weekday reporting
     bikeData <- bikeData  %>% filter(weekday == params$day)
 
-    # Changing weekday variable from numeric to character
+    latenight <- bikeData %>% filter(hr == 3)
+    latenightcount <- sum(latenight$cnt)
+    latenightcount
 
-    head(bikeData)
+    ## [1] 497
 
-    ##   instant     dteday season yr mnth hr holiday weekday workingday weathersit
-    ## 1     116 2011-01-06      1  0    1  0       0       4          1          1
-    ## 2     117 2011-01-06      1  0    1  1       0       4          1          1
-    ## 3     118 2011-01-06      1  0    1  2       0       4          1          1
-    ## 4     119 2011-01-06      1  0    1  4       0       4          1          2
-    ## 5     120 2011-01-06      1  0    1  5       0       4          1          2
-    ## 6     121 2011-01-06      1  0    1  6       0       4          1          2
-    ##   temp  atemp  hum windspeed cnt
-    ## 1 0.18 0.2424 0.55    0.0000  11
-    ## 2 0.16 0.2273 0.64    0.0000   4
-    ## 3 0.16 0.2273 0.64    0.0000   2
-    ## 4 0.16 0.1970 0.64    0.0896   1
-    ## 5 0.14 0.1818 0.69    0.0896   4
-    ## 6 0.14 0.1667 0.63    0.1045  36
+Summarizations
+==============
 
-Create Parameters & Render
-==========================
+    sumBikeData <- bikeData %>% select(dteday, season, hr, workingday, weathersit, temp, hum, windspeed, cnt)
 
-\#{r, parameters}
+    # create factors for season, timeofday and weather
+    sumBikeData <- mutate(sumBikeData, workday = as.factor(ifelse(sumBikeData$workingday == 0, "no", "yes")),
+                                       season = as.factor(ifelse(sumBikeData$season == 1, "winter",
+                                                          ifelse(sumBikeData$season == 2, "spring",
+                                                          ifelse(sumBikeData$season == 3, "summer", "fall")
+                                                          ))),
+                                       hours = as.factor(ifelse((sumBikeData$hr > 3) & (sumBikeData$hr < 6),
+                                                               "earyl AM", 
+                                                         ifelse((sumBikeData$hr >= 6) & (sumBikeData$hr < 10), 
+                                                               "AM commute", 
+                                                         ifelse((sumBikeData$hr >= 10) & (sumBikeData$hr < 16),
+                                                               "mid day", 
+                                                         ifelse((sumBikeData$hr >= 16 )& (sumBikeData$hr < 20), 
+                                                               "PM commute", 
+                                                         ifelse((sumBikeData$hr >= 20) & (sumBikeData$hr <= 23),
+                                                               "night", "late night")
+                                                        ))))),
+                                       weather = as.factor(ifelse(sumBikeData$weathersit == 1, "clear", 
+                                                           ifelse(sumBikeData$weathersit == 2, "mist",
+                                                           ifelse(sumBikeData$weathersit == 3, "light precip", 
+                                                                                               "heavy precip")
+                                                          ))))
+                                      
+    # select new vars for analysis 
+    sumBikeData <- sumBikeData %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hours, cnt) %>% 
+                                   rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
+    head(filter(sumBikeData, hours == "late night"), n = 20)
+
+    ##        dteday season      weather temp humidity windspeed workday      hours
+    ## 1  2011-01-06 winter        clear 0.18     0.55    0.0000       1 late night
+    ## 2  2011-01-06 winter        clear 0.16     0.64    0.0000       1 late night
+    ## 3  2011-01-06 winter        clear 0.16     0.64    0.0000       1 late night
+    ## 4  2011-01-13 winter        clear 0.14     0.59    0.2836       1 late night
+    ## 5  2011-01-13 winter        clear 0.14     0.50    0.2836       1 late night
+    ## 6  2011-01-13 winter        clear 0.14     0.50    0.3582       1 late night
+    ## 7  2011-01-13 winter        clear 0.14     0.50    0.3284       1 late night
+    ## 8  2011-01-20 winter        clear 0.26     0.56    0.3881       1 late night
+    ## 9  2011-01-20 winter        clear 0.26     0.56    0.0000       1 late night
+    ## 10 2011-01-20 winter        clear 0.26     0.56    0.0000       1 late night
+    ## 11 2011-01-20 winter        clear 0.26     0.56    0.1642       1 late night
+    ## 12 2011-02-03 winter        clear 0.20     0.40    0.4478       1 late night
+    ## 13 2011-02-03 winter        clear 0.20     0.44    0.5224       1 late night
+    ## 14 2011-02-03 winter        clear 0.18     0.43    0.2537       1 late night
+    ## 15 2011-02-03 winter        clear 0.18     0.43    0.2537       1 late night
+    ## 16 2011-02-10 winter light precip 0.14     0.86    0.1940       1 late night
+    ## 17 2011-02-10 winter light precip 0.14     0.80    0.1343       1 late night
+    ## 18 2011-02-10 winter light precip 0.14     0.80    0.1343       1 late night
+    ## 19 2011-02-17 winter        clear 0.34     0.53    0.1940       1 late night
+    ## 20 2011-02-17 winter        clear 0.34     0.53    0.2239       1 late night
+    ##    rentals
+    ## 1       11
+    ## 2        4
+    ## 3        2
+    ## 4        7
+    ## 5        2
+    ## 6        2
+    ## 7        3
+    ## 8       13
+    ## 9        5
+    ## 10       2
+    ## 11       1
+    ## 12      12
+    ## 13       5
+    ## 14       2
+    ## 15       1
+    ## 16      16
+    ## 17       7
+    ## 18       3
+    ## 19      17
+    ## 20       6
+
+Summaries for Season & Weather
+------------------------------
+
+    # Function to knit 5 number sum + ean given season
+    sumSeason <- function(x, ...) {
+      summ <- sumBikeData %>% filter(season == x) %>% select(9) %>% apply(2, sum)
+      kable(round(summ, 2), caption = paste0("Season: ", x))
+    }
+
+    # Summaries for Winter
+    sumSeason("winter")
+
+|         |     x |
+|:--------|------:|
+| rentals | 72355 |
+
+Season: winter
+
+    # Summaries for Spring
+    sumSeason("spring")
+
+|         |      x |
+|:--------|-------:|
+| rentals | 135207 |
+
+Season: spring
+
+    # Summaries for Summer
+    sumSeason("summer")
+
+|         |      x |
+|:--------|-------:|
+| rentals | 159561 |
+
+Season: summer
+
+    # Summaries for Fall
+    sumSeason("fall")
+
+|         |      x |
+|:--------|-------:|
+| rentals | 118272 |
+
+Season: fall
+
+    sum_meanFx <- function(cat, ...) {
+       if ((!is.null(cat) & (!is.character(cat) & (cat %in% sumBikeData[2])))) 
+        stop("invalid input")
+                                                                         
+       if (cat == "season") { 
+         seasonSum_Mean <- sumBikeData %>% group_by(season) %>%
+                                           mutate(rental_mean = round(mean(rentals),
+                                                                     digits = 2), 
+                                                  rental_sum = round(sum(rentals),
+                                                                    digits = 2)) %>% 
+                                           select(season, rental_mean, rental_sum)
+         seasonSum_Mean <- as_tibble(unique(seasonSum_Mean))
+         return(seasonSum_Mean)
+         
+       } else if (cat == "weather") {
+          weatherSum_Mean <- sumBikeData %>% group_by(weather) %>%
+                                             mutate(rental_mean = round(mean(rentals),
+                                                                       digits = 2), 
+                                                    rental_sum = round(sum(rentals),
+                                                                       digits = 2)) %>% 
+                                             select(weather, rental_mean, rental_sum) 
+          weatherSum_Mean <- as_tibble(unique(weatherSum_Mean))
+          return(weatherSum_Mean)
+           
+       } else if (cat == "hours") {
+          hoursSum_Mean <- sumBikeData %>% group_by(hours) %>% 
+                                           mutate(rental_mean = round(mean(rentals),
+                                                                     digits = 2), 
+                                                  rental_sum = round(sum(rentals),
+                                                                    digits = 2)) %>% 
+                                           select(hours, rental_mean, rental_sum)
+           hoursSum_Mean <- as_tibble(unique(hoursSum_Mean))
+           return(hoursSum_Mean)
+           
+       } else {
+           return(null)
+       }
+    }
+
+    kable(sum_meanFx("season"), caption = "Rentals by Season")
+
+| season | rental\_mean | rental\_sum |
+|:-------|-------------:|------------:|
+| winter |       125.18 |       72355 |
+| spring |       216.68 |      135207 |
+| summer |       237.80 |      159561 |
+| fall   |       197.78 |      118272 |
+
+Rentals by Season
+
+    seasonBox <- ggplot(sumBikeData, aes(x = rentals, y = season, color = season))
+    seasonBox + geom_boxplot() + labs(title = "Rentals by Season")
+
+![](ThursdayAnalysis_files/figure-gfm/season%20statbox-1.png)<!-- -->
+
+    kable(sum_meanFx("weather"), caption = "Rentals by Weather Condition")
+
+| weather      | rental\_mean | rental\_sum |
+|:-------------|-------------:|------------:|
+| clear        |       214.28 |      354840 |
+| mist         |       176.24 |      112087 |
+| light precip |       103.17 |       18468 |
+
+Rentals by Weather Condition
+
+    weatherBox <- ggplot(sumBikeData, aes(x = rentals, y = weather, color = weather))
+    weatherBox + geom_boxplot() + labs(title = "Rentals by Weather Condiion")
+
+![](ThursdayAnalysis_files/figure-gfm/weather%20statbox-1.png)<!-- -->
+
+    kable(sum_meanFx("hours"), caption = "Rentals by Hours")
+
+| hours      | rental\_mean | rental\_sum |
+|:-----------|-------------:|------------:|
+| late night |        17.86 |        7250 |
+| earyl AM   |        15.75 |        3197 |
+| AM commute |       285.41 |      117587 |
+| mid day    |       176.90 |      109323 |
+| PM commute |       418.55 |      174116 |
+| night      |       177.70 |       73922 |
+
+Rentals by Hours
+
+    hoursBox <- ggplot(sumBikeData, aes(x = rentals, y = hours, color = hours))
+    hoursBox + geom_boxplot() + labs(title = "Rentals by Hours")
+
+![](ThursdayAnalysis_files/figure-gfm/hours%20statbox-1.png)<!-- -->
+
+    dayOff <- sumBikeData %>% filter(workday == 0)
+    dayOffStat <- dayOff %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+                                                                            digits = 2), 
+                                                        rental_sum = round(sum(rentals),
+                                                                           digits = 2)) %>% 
+                                                        select(hours, rental_mean, rental_sum)
+    dayOffStat <- as_tibble(unique(dayOffStat))
+    kable(dayOffStat, caption = "Rentals by Hours (Day Off")
+
+| hours      | rental\_mean | rental\_sum |
+|:-----------|-------------:|------------:|
+| late night |        23.25 |         186 |
+| earyl AM   |         6.00 |          24 |
+| AM commute |        57.75 |         462 |
+| mid day    |       192.67 |        2312 |
+| PM commute |        82.25 |         658 |
+| night      |        34.75 |         278 |
+
+Rentals by Hours (Day Off
+
+    dayOffBox <- ggplot(dayOff, aes(x = rentals, y = hours, color = hours))
+    dayOffBox + geom_boxplot() + labs(title = "Rentals by Hours (Day Off)")
+
+![](ThursdayAnalysis_files/figure-gfm/hours%20statbox-2.png)<!-- -->
+
+    dayOn <- sumBikeData %>% filter(workday == 1)
+    dayOnStat <- dayOn %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+                                                                          digits = 2), 
+                                                      rental_sum = round(sum(rentals),
+                                                                         digits = 2)) %>% 
+                                                      select(hours, rental_mean, rental_sum)
+    dayOnStat <- as_tibble(unique(dayOnStat))
+    kable(dayOnStat, caption = "Rentals by Hours (Work Day)")
+
+| hours      | rental\_mean | rental\_sum |
+|:-----------|-------------:|------------:|
+| late night |        17.75 |        7064 |
+| earyl AM   |        15.94 |        3173 |
+| AM commute |       289.91 |      117125 |
+| mid day    |       176.59 |      107011 |
+| PM commute |       425.14 |      173458 |
+| night      |       180.50 |       73644 |
+
+Rentals by Hours (Work Day)
+
+    dayOnBox <- ggplot(dayOn, aes(x = rentals, y = hours, color = hours))
+    dayOnBox + geom_boxplot() + labs(title = "Rentals by Hours (Work Day)")
+
+![](ThursdayAnalysis_files/figure-gfm/hours%20statbox-3.png)<!-- -->
+
+    # 
+    quantStats <- sumBikeData %>%  select(c(4, 5, 6, 9)) %>% apply(2, summary)
+    kable(round((quantStats), 2), caption = "Summary: Quantitative Varibles")
+
+|         | temp | humidity | windspeed | rentals |
+|:--------|-----:|---------:|----------:|--------:|
+| Min.    | 0.10 |     0.00 |      0.00 |    1.00 |
+| 1st Qu. | 0.34 |     0.47 |      0.10 |   42.00 |
+| Median  | 0.50 |     0.61 |      0.19 |  154.00 |
+| Mean    | 0.51 |     0.61 |      0.19 |  196.44 |
+| 3rd Qu. | 0.66 |     0.76 |      0.27 |  280.00 |
+| Max.    | 0.94 |     1.00 |      0.69 |  976.00 |
+
+Summary: Quantitative Varibles
+
+    rentalCor <- select(sumBikeData, c(temp, humidity, windspeed, rentals))
+    rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
+    kable(select(rentalCor, rentals), caption = "Rental Correlations")
+
+|           | rentals |
+|:----------|--------:|
+| temp      |    0.35 |
+| humidity  |   -0.24 |
+| windspeed |    0.10 |
+| rentals   |    1.00 |
+
+Rental Correlations
+
+    # Base plot aesthetic with Total Points on x axis
+
+    humPoint_season <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = season))
+
+    # Avg PM point plot
+    humPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Humidity") +
+                facet_wrap(~ season)
+
+![](ThursdayAnalysis_files/figure-gfm/humidity%20plots-1.png)<!-- -->
+
+    humPoint_weather <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = weather))
+
+    humPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Humidity") +
+                facet_wrap(~ weather)
+
+![](ThursdayAnalysis_files/figure-gfm/humidity%20plots-2.png)<!-- -->
+
+    humPoint_hours <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = hours))
+
+    humPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Hours Rentals by Humidity") +
+                facet_wrap(~ hours)
+
+![](ThursdayAnalysis_files/figure-gfm/humidity%20plots-3.png)<!-- -->
+
+    # Base plot aesthetic with Total Points on x axis
+
+    windPoint_season <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = season))
+
+    # Avg PM point plot
+    windPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Wind Speed") +
+                facet_wrap(~ season)
+
+![](ThursdayAnalysis_files/figure-gfm/wind%20plots-1.png)<!-- -->
+
+    windPoint_weather <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = weather))
+
+    windPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Wind Speed") +
+                facet_wrap(~ weather)
+
+![](ThursdayAnalysis_files/figure-gfm/wind%20plots-2.png)<!-- -->
+
+    windPoint_hours <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = hours))
+
+    windPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Hours Rentals by Wind Speed") +
+                facet_wrap(~ hours)
+
+![](ThursdayAnalysis_files/figure-gfm/wind%20plots-3.png)<!-- -->
