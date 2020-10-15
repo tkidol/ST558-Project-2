@@ -345,31 +345,69 @@ Rentals by Hours (Work Day)
 
 Summary: Quantitative Varibles
 
+    rentalCor <- select(sumBikeData, c(temp, humidity, windspeed, rentals))
+    rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
+    kable(select(rentalCor, rentals), caption = "Rental Correlations")
+
+|           | rentals |
+|:----------|--------:|
+| temp      |    0.38 |
+| humidity  |   -0.26 |
+| windspeed |    0.11 |
+| rentals   |    1.00 |
+
+Rental Correlations
+
     # Base plot aesthetic with Total Points on x axis
 
-    tempPoint_season <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = season))
+    humPoint_season <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = season))
 
     # Avg PM point plot
-    tempPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
-                scale_fill_continuous() + labs(title =  "Season Rentals by Temperature") +
+    humPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Humidity") +
                 facet_wrap(~ season)
 
-![](MondayAnalysis_files/figure-gfm/quant%20plots-1.png)<!-- -->
+![](MondayAnalysis_files/figure-gfm/humidity%20plots-1.png)<!-- -->
 
-    tempPoint_weather <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = weather))
+    humPoint_weather <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = weather))
 
-    tempPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
-                scale_fill_continuous() + labs(title =  "Weather Rentals by Temperature") +
+    humPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Humidity") +
                 facet_wrap(~ weather)
 
-![](MondayAnalysis_files/figure-gfm/quant%20plots-2.png)<!-- -->
+![](MondayAnalysis_files/figure-gfm/humidity%20plots-2.png)<!-- -->
 
-    tempPoint_hours <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = hours))
+    humPoint_hours <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = hours))
 
-    tempPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
-                scale_fill_continuous() + labs(title =  "Hours Rentals by Temperature") +
+    humPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Hours Rentals by Humidity") +
                 facet_wrap(~ hours)
 
-![](MondayAnalysis_files/figure-gfm/quant%20plots-3.png)<!-- -->
+![](MondayAnalysis_files/figure-gfm/humidity%20plots-3.png)<!-- -->
 
-ggpairs(select(sumBikeData, c(2, 9)), aes(color = season)) \`\`\`
+    # Base plot aesthetic with Total Points on x axis
+
+    windPoint_season <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = season))
+
+    # Avg PM point plot
+    windPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Wind Speed") +
+                facet_wrap(~ season)
+
+![](MondayAnalysis_files/figure-gfm/wind%20plots-1.png)<!-- -->
+
+    windPoint_weather <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = weather))
+
+    windPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Wind Speed") +
+                facet_wrap(~ weather)
+
+![](MondayAnalysis_files/figure-gfm/wind%20plots-2.png)<!-- -->
+
+    windPoint_hours <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = hours))
+
+    windPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Hours Rentals by Wind Speed") +
+                facet_wrap(~ hours)
+
+![](MondayAnalysis_files/figure-gfm/wind%20plots-3.png)<!-- -->
