@@ -85,12 +85,6 @@ Data
     # filtering for individual weekday reporting
     bikeData <- bikeData  %>% filter(weekday == params$day)
 
-    latenight <- bikeData %>% filter(hr == 3)
-    latenightcount <- sum(latenight$cnt)
-    latenightcount
-
-    ## [1] 496
-
 Summarizations
 ==============
 
@@ -122,74 +116,18 @@ Summarizations
     # select new vars for analysis 
     sumBikeData <- sumBikeData %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hours, cnt) %>% 
                                    rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
-    head(filter(sumBikeData, hours == "late night"), n = 20)
+    head(filter(sumBikeData, hours == "late night"))
 
-    ##        dteday season weather temp humidity windspeed workday      hours rentals
-    ## 1  2011-01-03 winter   clear 0.22     0.44    0.3582       1 late night       5
-    ## 2  2011-01-03 winter   clear 0.20     0.44    0.4179       1 late night       2
-    ## 3  2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       5
-    ## 4  2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       1
-    ## 5  2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       3
-    ## 6  2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       1
-    ## 7  2011-01-17 winter    mist 0.20     0.47    0.2239       0 late night      17
-    ## 8  2011-01-17 winter    mist 0.20     0.44    0.1940       0 late night      16
-    ## 9  2011-01-17 winter    mist 0.18     0.43    0.2537       0 late night       8
-    ## 10 2011-01-17 winter    mist 0.18     0.43    0.1940       0 late night       2
-    ## 11 2011-01-24 winter   clear 0.06     0.41    0.1940       1 late night       7
-    ## 12 2011-01-24 winter   clear 0.04     0.45    0.1940       1 late night       1
-    ## 13 2011-01-24 winter   clear 0.04     0.45    0.2537       1 late night       1
-    ## 14 2011-01-31 winter    mist 0.24     0.65    0.2239       1 late night       7
-    ## 15 2011-01-31 winter   clear 0.22     0.64    0.2537       1 late night       7
-    ## 16 2011-01-31 winter   clear 0.22     0.64    0.1940       1 late night       1
-    ## 17 2011-01-31 winter   clear 0.22     0.64    0.1940       1 late night       2
-    ## 18 2011-02-07 winter   clear 0.24     0.65    0.0000       1 late night      15
-    ## 19 2011-02-07 winter   clear 0.22     0.75    0.0000       1 late night       5
-    ## 20 2011-02-07 winter   clear 0.20     0.80    0.0000       1 late night       3
+    ##       dteday season weather temp humidity windspeed workday      hours rentals
+    ## 1 2011-01-03 winter   clear 0.22     0.44    0.3582       1 late night       5
+    ## 2 2011-01-03 winter   clear 0.20     0.44    0.4179       1 late night       2
+    ## 3 2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       5
+    ## 4 2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       1
+    ## 5 2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       3
+    ## 6 2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       1
 
 Summaries for Season & Weather
 ------------------------------
-
-    # Function to knit 5 number sum + ean given season
-    sumSeason <- function(x, ...) {
-      summ <- sumBikeData %>% filter(season == x) %>% select(9) %>% apply(2, sum)
-      kable(round(summ, 2), caption = paste0("Season: ", x))
-    }
-
-    # Summaries for Winter
-    sumSeason("winter")
-
-|         |     x |
-|:--------|------:|
-| rentals | 63771 |
-
-Season: winter
-
-    # Summaries for Spring
-    sumSeason("spring")
-
-|         |      x |
-|:--------|-------:|
-| rentals | 123255 |
-
-Season: spring
-
-    # Summaries for Summer
-    sumSeason("summer")
-
-|         |      x |
-|:--------|-------:|
-| rentals | 146307 |
-
-Season: summer
-
-    # Summaries for Fall
-    sumSeason("fall")
-
-|         |      x |
-|:--------|-------:|
-| rentals | 122170 |
-
-Season: fall
 
     sum_meanFx <- function(cat, ...) {
        if ((!is.null(cat) & (!is.character(cat) & (cat %in% sumBikeData[2])))) 
@@ -357,6 +295,33 @@ Summary: Quantitative Varibles
 | rentals   |    1.00 |
 
 Rental Correlations
+
+    # Base plot aesthetic with Total Points on x axis
+
+    tempPoint_season <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = season))
+
+    # Avg PM point plot
+    tempPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Temperature") +
+                facet_wrap(~ season)
+
+![](MondayAnalysis_files/figure-gfm/temp%20plots-1.png)<!-- -->
+
+    tempPoint_weather <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = weather))
+
+    tempPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Temperature") +
+                facet_wrap(~ weather)
+
+![](MondayAnalysis_files/figure-gfm/temp%20plots-2.png)<!-- -->
+
+    tempPoint_hours <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = hours))
+
+    tempPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+                scale_fill_continuous() + labs(title =  "Hours Rentals by Temperature") +
+                facet_wrap(~ hours)
+
+![](MondayAnalysis_files/figure-gfm/temp%20plots-3.png)<!-- -->
 
     # Base plot aesthetic with Total Points on x axis
 

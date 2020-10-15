@@ -80,10 +80,6 @@ bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% m
 
 # filtering for individual weekday reporting
 bikeData <- bikeData  %>% filter(weekday == params$day)
-
-latenight <- bikeData %>% filter(hr == 3)
-latenightcount <- sum(latenight$cnt)
-latenightcount
 ```
 # Summarizations
 
@@ -117,35 +113,14 @@ sumBikeData <- mutate(sumBikeData, workday = as.factor(ifelse(sumBikeData$workin
 # select new vars for analysis 
 sumBikeData <- sumBikeData %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hours, cnt) %>% 
                                rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
-head(filter(sumBikeData, hours == "late night"), n = 20)
+head(filter(sumBikeData, hours == "late night"))
 
 
 ```
 
 ## Summaries for Season & Weather
 
-```{r, season sumf(x)}
-# Function to knit 5 number sum + ean given season
-sumSeason <- function(x, ...) {
-  summ <- sumBikeData %>% filter(season == x) %>% select(9) %>% apply(2, sum)
-  kable(round(summ, 2), caption = paste0("Season: ", x))
-}
-```
 
-```{r, season summ}
-
-# Summaries for Winter
-sumSeason("winter")
-
-# Summaries for Spring
-sumSeason("spring")
-
-# Summaries for Summer
-sumSeason("summer")
-
-# Summaries for Fall
-sumSeason("fall")
-```
 ```{r, sum mean wrapper}
 sum_meanFx <- function(cat, ...) {
    if ((!is.null(cat) & (!is.character(cat) & (cat %in% sumBikeData[2])))) 
@@ -248,7 +223,32 @@ kable(round((quantStats), 2), caption = "Summary: Quantitative Varibles")
 rentalCor <- select(sumBikeData, c(temp, humidity, windspeed, rentals))
 rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
 kable(select(rentalCor, rentals), caption = "Rental Correlations")
+
 ```
+
+```{r, temp plots}
+# Base plot aesthetic with Total Points on x axis
+
+tempPoint_season <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = season))
+
+# Avg PM point plot
+tempPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+            scale_fill_continuous() + labs(title =  "Season Rentals by Temperature") +
+            facet_wrap(~ season)
+
+tempPoint_weather <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = weather))
+
+tempPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+            scale_fill_continuous() + labs(title =  "Weather Rentals by Temperature") +
+            facet_wrap(~ weather)
+
+tempPoint_hours <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = hours))
+
+tempPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
+            scale_fill_continuous() + labs(title =  "Hours Rentals by Temperature") +
+            facet_wrap(~ hours)
+```
+
 
 ```{r, humidity plots}
 # Base plot aesthetic with Total Points on x axis
