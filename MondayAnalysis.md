@@ -3,12 +3,6 @@ Bicycle Analysis
 Todd Idol
 10/10/2020
 
--   [Project Repo](#project-repo)
--   [Weekly Analysis](#weekly-analysis)
--   [Packages](#packages)
-    -   [Tidyverse](#tidyverse)
-    -   [Rmarkdown](#rmarkdown)
-    -   [Caret](#caret)
 -   [Set Parameters & Knit](#set-parameters-knit)
 -   [Introduction](#introduction)
 -   [Data](#data)
@@ -17,52 +11,7 @@ Todd Idol
 -   [Modeling](#modeling)
     -   [Tree Based Model
         (non-ensemble)](#tree-based-model-non-ensemble)
-
-Project Repo
-============
-
-Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
-
-Weekly Analysis
-===============
-
--   The analysis for [Sunday is available here](SundayAnalysis.md).
-
--   The analysis for [Monday is available here](MondayAnalysis.md).
-
--   The analysis for [Tuesday is available here](TuesdayAnalysis.md).
-
--   The analysis for [Wednesday is available here](Wedesdaynalysis.md).
-
--   The analysis for [Thursday is available here](ThursdayAnalysis.md).
-
--   The analysis for [Friday is available here](FridayAnalysis.md).
-
--   The analysis for [Saturday is available here](SaturdayAnalysis.md).
-
-Packages
-========
-
-Tidyverse
----------
-
-The workhorse of this project for 3 main core packages: DPLYR -
-manipulated all of my data (selects, joins, filter, new variables… ),
-Tibble for rendering Data Frames more effectively, & () ggplot2 for
-discrete & continuous data plots
-
-Rmarkdown
----------
-
-Key to the project for the Rmd file itself including the knitr::
-functions for consumable object output (kable) & README.md github doc
-output through render()
-
-Caret
------
-
-Used to create standardized train/test data & create controls and tuning
-for LM & GLM analysis
+    -   [Boosted Tree Model](#boosted-tree-model)
 
 Set Parameters & Knit
 =====================
@@ -108,23 +57,21 @@ Summarizations
                                                             ifelse(sumBikeTrain$season == 3, "summer", "fall")
                                                            ))),
                            
-                                         hour = as.factor(ifelse((sumBikeTrain$hr > 3) & (sumBikeTrain$hr < 6),
-                                                               "earyl AM", 
-                                                           ifelse((sumBikeTrain$hr >= 6) & (sumBikeTrain$hr < 10), 
-                                                               "AM commute", 
-                                                           ifelse((sumBikeTrain$hr >= 10) & (sumBikeTrain$hr < 16),
+                                         hour = as.factor(ifelse((sumBikeTrain$hr >= 6) & (sumBikeTrain$hr < 10), 
+                                                                "AM commute", 
+                                                          ifelse((sumBikeTrain$hr >= 10) & (sumBikeTrain$hr < 16),
                                                                "mid day", 
-                                                           ifelse((sumBikeTrain$hr >= 16 )& (sumBikeTrain$hr < 20), 
+                                                          ifelse((sumBikeTrain$hr >= 16 )& (sumBikeTrain$hr < 20), 
                                                                "PM commute", 
-                                                           ifelse((sumBikeTrain$hr >= 20) & (sumBikeTrain$hr <= 23),
+                                                          ifelse((sumBikeTrain$hr >= 20) & (sumBikeTrain$hr <= 23),
                                                                "night", "late night")
-                                                        ))))),
+                                                         )))),
                            
                                          weather = as.factor(ifelse(sumBikeTrain$weathersit == 1, "clear", 
-                                                           ifelse(sumBikeTrain$weathersit == 2, "mist",
-                                                           ifelse(sumBikeTrain$weathersit == 3, "light precip", 
+                                                             ifelse(sumBikeTrain$weathersit == 2, "mist",
+                                                             ifelse(sumBikeTrain$weathersit == 3, "light precip", 
                                                                                                "heavy precip")
-                                                          ))))
+                                                           ))))
                                       
     # select new vars for analysis 
     sumBikeTrain <- sumBikeTrain %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hour, cnt) %>% 
@@ -134,10 +81,10 @@ Summarizations
     ##       dteday season weather temp humidity windspeed workday       hour rentals
     ## 1 2011-01-03 winter   clear 0.22     0.44    0.3582       1 late night       5
     ## 2 2011-01-03 winter   clear 0.20     0.44    0.4179       1 late night       2
-    ## 3 2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       1
-    ## 4 2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       1
-    ## 5 2011-01-17 winter    mist 0.20     0.47    0.2239       0 late night      17
-    ## 6 2011-01-17 winter    mist 0.20     0.44    0.1940       0 late night      16
+    ## 3 2011-01-03 winter   clear 0.16     0.47    0.3881       1 late night       1
+    ## 4 2011-01-03 winter   clear 0.16     0.47    0.2836       1 late night       3
+    ## 5 2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       1
+    ## 6 2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       1
 
 Summaries for Season & Weather
 ------------------------------
@@ -219,8 +166,7 @@ Rentals by Weather Condition
 
 | hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        17.65 |        4976 |
-| earyl AM   |        14.73 |        2091 |
+| late night |        16.67 |        7067 |
 | AM commute |       237.68 |       65601 |
 | mid day    |       185.90 |       84400 |
 | PM commute |       408.90 |      117354 |
@@ -244,8 +190,7 @@ Rentals by Hour
 
 | hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        36.22 |        1485 |
-| earyl AM   |         7.67 |         138 |
+| late night |        27.51 |        1623 |
 | AM commute |       111.50 |        4906 |
 | mid day    |       277.27 |       17468 |
 | PM commute |       287.91 |       12380 |
@@ -269,8 +214,7 @@ Rentals by Hour (Day Off
 
 | hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        14.49 |        3491 |
-| earyl AM   |        15.75 |        1953 |
+| late night |        14.92 |        5444 |
 | AM commute |       261.62 |       60695 |
 | mid day    |       171.18 |       66932 |
 | PM commute |       430.22 |      104974 |
@@ -402,35 +346,59 @@ words
 
 ### Post Summary Analysis Train & Test Data
 
-    bikeTrain1 <- bikeTrain %>% select(season, hr, weathersit, temp, hum, cnt) %>%
-                                       rename("hour" = hr, "weather" = weathersit,
-                                       "humidity" = hum, "rentals" = cnt)
-    # select new vars for analysis 
-    bikeTrain1 <- bikeTrain1 %>% select(c(season, hour, weather, temp, humidity, rentals)) 
-                                 
+    bikeTrain1 <- bikeTrain %>% select(c(season, hr, weathersit, temp, hum, cnt)) %>%
+                                mutate(season = as.factor(ifelse(bikeTrain$season == 1, "winter",
+                                                          ifelse(bikeTrain$season == 2, "spring",
+                                                          ifelse(bikeTrain$season == 3, "summer", "fall")
+                                                         ))),
+                           
+                                hour = as.factor(ifelse((bikeTrain$hr >= 6) & (bikeTrain$hr < 10), "AM commute", 
+                                                 ifelse((bikeTrain$hr >= 10) & (bikeTrain$hr < 16), "mid day", 
+                                                 ifelse((bikeTrain$hr >= 16 )& (bikeTrain$hr < 20), "PM commute", 
+                                                 ifelse((bikeTrain$hr >= 20) & (bikeTrain$hr <= 23), "night", "late night")
+                                                )))),
+                           
+                                weather = as.factor(ifelse(bikeTrain$weathersit == 1, "clear", 
+                                                    ifelse(bikeTrain$weathersit == 2, "mist",
+                                                    ifelse(bikeTrain$weathersit == 3, "light precip", "heavy precip")
+                                                   )))) %>%
+                                rename("humidity" = hum, "rentals" = cnt)
+    bikeTrain1 <- bikeTrain1 %>% select(c(season, hour, weather, temp, humidity, rentals))        
     str(bikeTrain1)
 
     ## 'data.frame':    1737 obs. of  6 variables:
-    ##  $ season  : int  1 1 1 1 1 1 1 1 1 1 ...
-    ##  $ hour    : int  0 1 4 5 7 8 9 11 13 16 ...
-    ##  $ weather : int  1 1 1 1 1 1 1 1 1 1 ...
+    ##  $ season  : Factor w/ 4 levels "fall","spring",..: 4 4 4 4 4 4 4 4 4 4 ...
+    ##  $ hour    : Factor w/ 5 levels "AM commute","late night",..: 2 2 2 2 1 1 1 3 3 5 ...
+    ##  $ weather : Factor w/ 4 levels "clear","heavy precip",..: 1 1 1 1 1 1 1 1 1 1 ...
     ##  $ temp    : num  0.22 0.2 0.16 0.16 0.14 0.14 0.16 0.2 0.24 0.26 ...
     ##  $ humidity: num  0.44 0.44 0.47 0.47 0.5 0.5 0.43 0.4 0.35 0.3 ...
     ##  $ rentals : int  5 2 1 3 64 154 88 51 61 76 ...
 
-    bikeTest1 <- bikeTest %>% select(season, hr, weathersit, temp, hum, cnt) %>% 
-                                     rename("hour" = hr, "weather" = weathersit,
-                                     "humidity" = hum, "rentals" = cnt)
+    bikeTest1 <- bikeTest %>% select(c(season, hr, weathersit, temp, hum, cnt)) %>%
+                              mutate(season = as.factor(ifelse(bikeTest$season == 1, "winter",
+                                                        ifelse(bikeTest$season == 2, "spring",
+                                                        ifelse(bikeTest$season == 3, "summer", "fall")
+                                                       ))),
+                           
+                              hour = as.factor(ifelse((bikeTest$hr >= 6) & (bikeTest$hr < 10), "AM commute", 
+                                               ifelse((bikeTest$hr >= 10) & (bikeTest$hr < 16), "mid day", 
+                                               ifelse((bikeTest$hr >= 16 )& (bikeTest$hr < 20), "PM commute", 
+                                               ifelse((bikeTest$hr >= 20) & (bikeTest$hr <= 23), "night", "late night")
+                                              )))),
+                           
+                             weather = as.factor(ifelse(bikeTest$weathersit == 1, "clear", 
+                                                 ifelse(bikeTest$weathersit == 2, "mist",
+                                                 ifelse(bikeTest$weathersit == 3, "light precip", "heavy precip")
+                                                )))) %>%
+                                rename("humidity" = hum, "rentals" = cnt)
+    bikeTest1 <- bikeTest1 %>% select(c(season, hour, weather, temp, humidity, rentals))        
 
-    # select new vars for analysis 
-    bikeTest1 <- bikeTest1 %>% select(c(season, hour, weather, temp, humidity, rentals)) 
-                               
     str(bikeTest1)
 
     ## 'data.frame':    742 obs. of  6 variables:
-    ##  $ season  : int  1 1 1 1 1 1 1 1 1 1 ...
-    ##  $ hour    : int  6 10 12 14 15 17 20 21 0 2 ...
-    ##  $ weather : int  1 1 1 1 1 1 1 1 1 1 ...
+    ##  $ season  : Factor w/ 4 levels "fall","spring",..: 4 4 4 4 4 4 4 4 4 4 ...
+    ##  $ hour    : Factor w/ 5 levels "AM commute","late night",..: 1 3 3 3 3 5 4 4 2 2 ...
+    ##  $ weather : Factor w/ 3 levels "clear","light precip",..: 1 1 1 1 1 1 1 1 1 1 ...
     ##  $ temp    : num  0.14 0.18 0.22 0.26 0.26 0.24 0.2 0.18 0.12 0.12 ...
     ##  $ humidity: num  0.5 0.43 0.35 0.3 0.3 0.3 0.47 0.64 0.5 0.5 ...
     ##  $ rentals : int  30 44 61 77 72 157 52 52 5 3 ...
@@ -440,57 +408,154 @@ Tree Based Model (non-ensemble)
 
 words
 
-    # CP values
-    tune <- c(0, .05, .01, .015, .02)
-     
-    # Train system tuned CP
+    # train all predictors
 
-    rfit_all <- train(rentals ~ ., data = bikeTrain1,
+    rfitAll <- train(rentals ~ ., data = bikeTrain1,
                       method = "rpart", preProcess = 
                       c("center", "scale"), trControl = 
                       trainControl(method = "LOOCV"))
-    plot(varImp(rfit_all))
 
-![](MondayAnalysis_files/figure-gfm/classification%20trees-1.png)<!-- -->
+    plot(varImp(rfitAll))
 
-    rfit_tmp_hum_hr <- train(rentals ~ temp + season + hour, data = bikeTrain1,
+![](MondayAnalysis_files/figure-gfm/rtree%20all-1.png)<!-- -->
+
+    round(rfitAll$results[, c(1,2)], digits = 2)
+
+    ##     cp   RMSE
+    ## 1 0.07 137.55
+    ## 2 0.16 156.57
+    ## 3 0.31 196.47
+
+    rfitTop3 <- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
                              method = "rpart", preProcess = 
                              c("center", "scale"), trControl = 
-                             trainControl(method = "LOOCV"), tuneLength = 5)
-    rfit_tmp_hum_hr$results[, c(1,2)]
+                             trainControl(method = "LOOCV"))
+                             
+    kable(round(rfitTop3$results[, c(1,2)], digits = 2))
 
-    ##           cp     RMSE
-    ## 1 0.03246587 123.2706
-    ## 2 0.05789326 125.7871
-    ## 3 0.07061600 135.9746
-    ## 4 0.09536109 162.8587
-    ## 5 0.30268930 184.2910
+|   cp |   RMSE |
+|-----:|-------:|
+| 0.07 | 137.55 |
+| 0.16 | 156.57 |
+| 0.31 | 196.47 |
 
-    ufit_tmp_hum_hr <- train(rentals ~ temp + season + hour, data = bikeTrain1,
+    tune <- c(0, .01, .015, .02)
+     
+    # Train system tuned CP
+    ufitTop3X<- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
                              method = "rpart", preProcess = 
                              c("center", "scale"), trControl = 
-                             trainControl(method = "LOOCV"), tuneGrid = expand.grid(cp = tune))
-    ufit_tmp_hum_hr$results[, c(1,2)]
+                             trainControl(method = "LOOCV"),
+                             tuneGrid = expand.grid(cp = tune))
 
-    ##      cp      RMSE
-    ## 1 0.000  85.78163
-    ## 2 0.010 104.48659
-    ## 3 0.015 106.71917
-    ## 4 0.020 107.18162
-    ## 5 0.050 113.65936
+    kable(round(ufitTop3X$results[, c(1,2)], digits = 2))
 
-    ufitTuned <- train(rentals ~ temp + season + hour, data = bikeTrain1,
-                       method = "rpart", preProcess = 
+|   cp |   RMSE |
+|-----:|-------:|
+| 0.00 | 115.43 |
+| 0.01 | 120.39 |
+| 0.02 | 120.87 |
+| 0.02 | 120.09 |
+
+    ufitFinal <- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
+                             method = "rpart", 
+                             preProcess = c("center", "scale"),
+                             trControl = trainControl(method = "LOOCV"), 
+                             tuneGrid = expand.grid(cp = .02))
+
+    plot(ufitFinal$finalModel)
+    text(ufitFinal$finalModel, pretty = 1, cex = .8)
+
+![](MondayAnalysis_files/figure-gfm/rtree%20final%20model-1.png)<!-- -->
+
+    ufitPred <- predict(ufitFinal, newdata = bikeTest1)
+    ufitPred_results <- as_tibble(postResample(ufitPred, bikeTest1$rentals))
+    ufitPred_results$value <- round(ufitPred_results$value, digits = 2)
+    setattr(ufitPred_results, "row.names", c("RMSE", "Rsquared", "MAE"))
+    kable(ufitPred_results, caption = "Regression Tree Prediction Results")
+
+|          |  value |
+|:---------|-------:|
+| RMSE     | 116.13 |
+| Rsquared |   0.57 |
+| MAE      |  76.14 |
+
+Regression Tree Prediction Results
+
+Boosted Tree Model
+------------------
+
+    # Train program defined tuning parameters
+    boostedFit <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
                        c("center", "scale"), trControl = 
-                       trainControl(method = "LOOCV"), tuneGrid = expand.grid(cp = .01))
-    ufitTuned$results[, c(1,2)]
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE)
+                      
+    kable(round(boostedFit$results, digits = 2))
 
-    ##     cp     RMSE
-    ## 1 0.01 104.4866
+|     | shrinkage | interaction.depth | n.minobsinnode | n.trees |   RMSE | Rsquared |   MAE | RMSESD | RsquaredSD | MAESD |
+|:----|----------:|------------------:|---------------:|--------:|-------:|---------:|------:|-------:|-----------:|------:|
+| 1   |       0.1 |                 1 |             10 |      50 | 119.62 |     0.58 | 84.81 |  20.83 |       0.11 | 11.74 |
+| 4   |       0.1 |                 2 |             10 |      50 | 110.69 |     0.63 | 76.48 |  19.53 |       0.11 | 10.94 |
+| 7   |       0.1 |                 3 |             10 |      50 | 108.25 |     0.65 | 74.85 |  19.71 |       0.11 | 11.48 |
+| 2   |       0.1 |                 1 |             10 |     100 | 115.79 |     0.60 | 82.83 |  20.10 |       0.11 | 12.06 |
+| 5   |       0.1 |                 2 |             10 |     100 | 107.79 |     0.65 | 75.06 |  19.12 |       0.10 | 11.13 |
+| 8   |       0.1 |                 3 |             10 |     100 | 107.06 |     0.65 | 74.56 |  19.51 |       0.11 | 12.04 |
+| 3   |       0.1 |                 1 |             10 |     150 | 114.10 |     0.61 | 82.33 |  19.93 |       0.11 | 12.63 |
+| 6   |       0.1 |                 2 |             10 |     150 | 107.00 |     0.65 | 74.96 |  19.30 |       0.11 | 11.66 |
+| 9   |       0.1 |                 3 |             10 |     150 | 106.36 |     0.66 | 74.19 |  19.14 |       0.10 | 11.87 |
 
-    plot(ufitTuned$finalModel)
-    text(ufitTuned$finalModel, pretty = 1, cex = .8)
+    # Tuned parameters
+    gbm_grid <- expand.grid(n.trees = c(200, 250),
+                            interaction.depth = (4),
+                            shrinkage = c(.1, .2), 
+                            n.minobsinnode = 10)
 
-![](MondayAnalysis_files/figure-gfm/classification%20trees-2.png)<!-- -->
+    boostedFitX <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
+                       c("center", "scale"), trControl = 
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE,
+                       tuneGrid = expand.grid(gbm_grid))
 
-\`\`\`
+    kable(round(boostedFitX$results, digits = 2))
+
+|     | shrinkage | interaction.depth | n.minobsinnode | n.trees |   RMSE | Rsquared |   MAE | RMSESD | RsquaredSD | MAESD |
+|:----|----------:|------------------:|---------------:|--------:|-------:|---------:|------:|-------:|-----------:|------:|
+| 1   |       0.1 |                 4 |             10 |     200 | 106.37 |     0.66 | 73.82 |  16.04 |        0.1 |  9.69 |
+| 3   |       0.2 |                 4 |             10 |     200 | 107.94 |     0.65 | 74.97 |  16.39 |        0.1 | 10.05 |
+| 2   |       0.1 |                 4 |             10 |     250 | 106.69 |     0.66 | 74.01 |  15.48 |        0.1 |  9.58 |
+| 4   |       0.2 |                 4 |             10 |     250 | 108.85 |     0.64 | 75.54 |  16.03 |        0.1 |  9.90 |
+
+    gbm_grid1 <- expand.grid(n.trees = 150,
+                            interaction.depth = 3,
+                            shrinkage = .1, 
+                            n.minobsinnode = 10)
+
+    boostedFinal <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
+                       c("center", "scale"), trControl = 
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE,
+                       tuneGrid = expand.grid(gbm_grid1))
+
+    boostedFinal$finalModel
+
+    ## A gradient boosted model with gaussian loss function.
+    ## 150 iterations were performed.
+    ## There were 12 predictors of which 11 had non-zero influence.
+
+    boostedPred <- predict(boostedFinal, newdata = bikeTest1)
+    boostedPred_results <- as_tibble(postResample(boostedPred, bikeTest1$rentals))
+    boostedPred_results$value <- round(boostedPred_results$value, digits = 2)
+    setattr(boostedPred_results, "row.names", c("RMSE", "Rsquared", "MAE"))
+    kable(boostedPred_results, caption = "Boosted Tree Prediction Results")
+
+|          |  value |
+|:---------|-------:|
+| RMSE     | 104.69 |
+| Rsquared |   0.65 |
+| MAE      |  69.67 |
+
+Boosted Tree Prediction Results
