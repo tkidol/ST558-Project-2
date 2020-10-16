@@ -1,7 +1,7 @@
-Bicycle Analysis
+README
 ================
 Todd Idol
-10/10/2020
+10/16/2020
 
 -   [Project Repo](#project-repo)
 -   [Weekly Analysis](#weekly-analysis)
@@ -9,9 +9,7 @@ Todd Idol
     -   [Tidyverse](#tidyverse)
     -   [Rmarkdown](#rmarkdown)
     -   [Caret](#caret)
--   [Set Parameters & Knit](#set-parameters-knit)
--   [Data](#data)
--   [Create Parameters & Render](#create-parameters-render)
+-   [Render Code](#render-code)
 
 Project Repo
 ============
@@ -59,33 +57,24 @@ Caret
 Used to create standardized train/test data & create controls and tuning
 for LM & GLM analysis
 
-Set Parameters & Knit
-=====================
+Render Code
+===========
 
-Data
-====
+Link to file
+[here](https://github.com/tkidol/ST558-Project-2/blob/main/P2_Render.Rmd)
 
-    bikeData <- read.csv("hour.csv")
+\`ibrary(dplyr) library(rmarkdown)
 
-    # removing casual & registered vars since they will not be used for modling
-    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(season = as.factor(season), mnth= as.factor(mnth), hr = as.factor(hr), weekday = as.factor(weekday), workingday = as.factor(workingday), weathersit = as.factor(weathersit))
+charDay &lt;- c(“Sunday”, “Monday”, “Tuesday”, “Wednesday”, “Thursday”,
+“Friday”, “Saturday”)
 
-    bikeData <- bikeData  %>% filter(weekday == params$day)
+numDay &lt;- c(“0”, “1”, “2”, “3”, “4”, “5”, “6”)
 
-    # Changing weekday variable from numeric to character
+output\_file &lt;- paste0(charDay,“Analysis.md”)
 
-    knitr::kable(head(bikeData))
+params &lt;- lapply(numDay, FUN = function(x) (list(day = x)))
 
-| instant | dteday     | season |  yr | mnth | hr  | holiday | weekday | workingday | weathersit | temp |  atemp |  hum | windspeed | cnt |
-|--------:|:-----------|:-------|----:|:-----|:----|--------:|:--------|:-----------|:-----------|-----:|-------:|-----:|----------:|----:|
-|      48 | 2011-01-03 | 1      |   0 | 1    | 0   |       0 | 1       | 1          | 1          | 0.22 | 0.1970 | 0.44 |    0.3582 |   5 |
-|      49 | 2011-01-03 | 1      |   0 | 1    | 1   |       0 | 1       | 1          | 1          | 0.20 | 0.1667 | 0.44 |    0.4179 |   2 |
-|      50 | 2011-01-03 | 1      |   0 | 1    | 4   |       0 | 1       | 1          | 1          | 0.16 | 0.1364 | 0.47 |    0.3881 |   1 |
-|      51 | 2011-01-03 | 1      |   0 | 1    | 5   |       0 | 1       | 1          | 1          | 0.16 | 0.1364 | 0.47 |    0.2836 |   3 |
-|      52 | 2011-01-03 | 1      |   0 | 1    | 6   |       0 | 1       | 1          | 1          | 0.14 | 0.1061 | 0.50 |    0.3881 |  30 |
-|      53 | 2011-01-03 | 1      |   0 | 1    | 7   |       0 | 1       | 1          | 1          | 0.14 | 0.1364 | 0.50 |    0.1940 |  64 |
+reports &lt;- tibble(output\_file, params)
 
-Create Parameters & Render
-==========================
-
-\#{r, parameters}
+apply(reports, MARGIN = 1, FUN = function(x) { render(“P2\_TKIdol.Rmd”,
+output\_file = x\[\[1\]\], params = x\[\[2\]\]) })\`
