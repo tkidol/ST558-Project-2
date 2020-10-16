@@ -16,13 +16,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE
 rmarkdown::find_pandoc(version = '2.10.1')
 options(knitr.duplicate.label = "allow")
 library(tidyverse)
-library(jsonlite)
-library(httr)
 library(rmarkdown)
 library(knitr)
 library(caret)
-library(DT)
-library(GGally)
+library(dplyr)
 ```
 
 # Project Repo
@@ -80,40 +77,50 @@ bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% m
 
 # filtering for individual weekday reporting
 bikeData <- bikeData  %>% filter(weekday == params$day)
+
+# split data 70% train & 80% test
+set.seed(100)
+trainIndex <- createDataPartition(bikeData$cnt, p = .7, list = FALSE)
+
+bikeTrain <- bikeData[trainIndex, ]
+bikeTest <- bikeData[-trainIndex, ]
 ```
 # Summarizations
 
 ```{r, summaries}
 
-sumBikeData <- bikeData %>% select(dteday, season, hr, workingday, weathersit, temp, hum, windspeed, cnt)
+sumBikeTrain <- bikeTrain %>% select(dteday, season, hr, workingday, weathersit, temp, hum, windspeed, cnt)
 
 # create factors for season, timeofday and weather
-sumBikeData <- mutate(sumBikeData, workday = as.factor(ifelse(sumBikeData$workingday == 0, "no", "yes")),
-                                   season = as.factor(ifelse(sumBikeData$season == 1, "winter",
-                                                      ifelse(sumBikeData$season == 2, "spring",
-                                                      ifelse(sumBikeData$season == 3, "summer", "fall")
-                                                      ))),
-                                   hours = as.factor(ifelse((sumBikeData$hr > 3) & (sumBikeData$hr < 6),
+sumBikeTrain <- mutate(sumBikeTrain, workday = as.factor(ifelse(sumBikeTrain$workingday == 0, "no", "yes")),
+                       
+                                     season = as.factor(ifelse(sumBikeTrain$season == 1, "winter",
+                                                        ifelse(sumBikeTrain$season == 2, "spring",
+                                                        ifelse(sumBikeTrain$season == 3, "summer", "fall")
+                                                       ))),
+                       
+                                     hour = as.factor(ifelse((sumBikeTrain$hr > 3) & (sumBikeTrain$hr < 6),
                                                            "earyl AM", 
-                                                     ifelse((sumBikeData$hr >= 6) & (sumBikeData$hr < 10), 
+                                                       ifelse((sumBikeTrain$hr >= 6) & (sumBikeTrain$hr < 10), 
                                                            "AM commute", 
-                                                     ifelse((sumBikeData$hr >= 10) & (sumBikeData$hr < 16),
+                                                       ifelse((sumBikeTrain$hr >= 10) & (sumBikeTrain$hr < 16),
                                                            "mid day", 
-                                                     ifelse((sumBikeData$hr >= 16 )& (sumBikeData$hr < 20), 
+                                                       ifelse((sumBikeTrain$hr >= 16 )& (sumBikeTrain$hr < 20), 
                                                            "PM commute", 
-                                                     ifelse((sumBikeData$hr >= 20) & (sumBikeData$hr <= 23),
+                                                       ifelse((sumBikeTrain$hr >= 20) & (sumBikeTrain$hr <= 23),
                                                            "night", "late night")
                                                     ))))),
-                                   weather = as.factor(ifelse(sumBikeData$weathersit == 1, "clear", 
-                                                       ifelse(sumBikeData$weathersit == 2, "mist",
-                                                       ifelse(sumBikeData$weathersit == 3, "light precip", 
+                       
+                                     weather = as.factor(ifelse(sumBikeTrain$weathersit == 1, "clear", 
+                                                       ifelse(sumBikeTrain$weathersit == 2, "mist",
+                                                       ifelse(sumBikeTrain$weathersit == 3, "light precip", 
                                                                                            "heavy precip")
                                                       ))))
                                   
 # select new vars for analysis 
-sumBikeData <- sumBikeData %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hours, cnt) %>% 
-                               rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
-head(filter(sumBikeData, hours == "late night"))
+sumBikeTrain <- sumBikeTrain %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hour, cnt) %>% 
+                                 rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
+head(filter(sumBikeTrain, hour == "late night"))
 
 
 ```
@@ -123,11 +130,13 @@ head(filter(sumBikeData, hours == "late night"))
 
 ```{r, sum mean wrapper}
 sum_meanFx <- function(cat, ...) {
-   if ((!is.null(cat) & (!is.character(cat) & (cat %in% sumBikeData[2])))) 
+   if ((!is.null(cat) & (!is.character(cat)) & ((cat %in% sumBikeTrain[2]) |
+                                                (cat %in% sumBikeTrain[3]) |
+                                                (cat %in% sumBikeTrain[8]))))
     stop("invalid input")
                                                                      
    if (cat == "season") { 
-     seasonSum_Mean <- sumBikeData %>% group_by(season) %>%
+     seasonSum_Mean <- sumBikeTrain %>% group_by(season) %>%
                                        mutate(rental_mean = round(mean(rentals),
                                                                  digits = 2), 
                                               rental_sum = round(sum(rentals),
@@ -137,7 +146,7 @@ sum_meanFx <- function(cat, ...) {
      return(seasonSum_Mean)
      
    } else if (cat == "weather") {
-      weatherSum_Mean <- sumBikeData %>% group_by(weather) %>%
+      weatherSum_Mean <- sumBikeTrain %>% group_by(weather) %>%
                                          mutate(rental_mean = round(mean(rentals),
                                                                    digits = 2), 
                                                 rental_sum = round(sum(rentals),
@@ -146,15 +155,15 @@ sum_meanFx <- function(cat, ...) {
       weatherSum_Mean <- as_tibble(unique(weatherSum_Mean))
       return(weatherSum_Mean)
        
-   } else if (cat == "hours") {
-      hoursSum_Mean <- sumBikeData %>% group_by(hours) %>% 
+   } else if (cat == "hour") {
+      hourSum_Mean <- sumBikeTrain %>% group_by(hour) %>% 
                                        mutate(rental_mean = round(mean(rentals),
                                                                  digits = 2), 
                                               rental_sum = round(sum(rentals),
                                                                 digits = 2)) %>% 
-                                       select(hours, rental_mean, rental_sum)
-       hoursSum_Mean <- as_tibble(unique(hoursSum_Mean))
-       return(hoursSum_Mean)
+                                       select(hour, rental_mean, rental_sum)
+       hourSum_Mean <- as_tibble(unique(hourSum_Mean))
+       return(hourSum_Mean)
        
    } else {
        return(null)
@@ -166,7 +175,7 @@ sum_meanFx <- function(cat, ...) {
 ```{r, season statbox}
 kable(sum_meanFx("season"), caption = "Rentals by Season")
 
-seasonBox <- ggplot(sumBikeData, aes(x = rentals, y = season, color = season))
+seasonBox <- ggplot(sumBikeTrain, aes(x = rentals, y = season, color = season))
 seasonBox + geom_boxplot() + labs(title = "Rentals by Season")
 ```
 
@@ -176,123 +185,194 @@ seasonBox + geom_boxplot() + labs(title = "Rentals by Season")
 ```{r, weather statbox}
 kable(sum_meanFx("weather"), caption = "Rentals by Weather Condition")
 
-weatherBox <- ggplot(sumBikeData, aes(x = rentals, y = weather, color = weather))
+weatherBox <- ggplot(sumBikeTrain, aes(x = rentals, y = weather, color = weather))
 weatherBox + geom_boxplot() + labs(title = "Rentals by Weather Condiion")
 ```
 
-```{r, hours statbox}
-kable(sum_meanFx("hours"), caption = "Rentals by Hours")
+```{r, hour statbox}
+kable(sum_meanFx("hour"), caption = "Rentals by Hour")
 
-hoursBox <- ggplot(sumBikeData, aes(x = rentals, y = hours, color = hours))
-hoursBox + geom_boxplot() + labs(title = "Rentals by Hours")
+hourBox <- ggplot(sumBikeTrain, aes(x = rentals, y = hour, color = hour))
+hourBox + geom_boxplot() + labs(title = "Rentals by Hour")
 
 
-dayOff <- sumBikeData %>% filter(workday == 0)
-dayOffStat <- dayOff %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+dayOff <- sumBikeTrain %>% filter(workday == 0)
+dayOffStat <- dayOff %>% group_by(hour) %>% mutate(rental_mean = round(mean(rentals),
                                                                         digits = 2), 
                                                     rental_sum = round(sum(rentals),
                                                                        digits = 2)) %>% 
-                                                    select(hours, rental_mean, rental_sum)
+                                                    select(hour, rental_mean, rental_sum)
 dayOffStat <- as_tibble(unique(dayOffStat))
-kable(dayOffStat, caption = "Rentals by Hours (Day Off")
+kable(dayOffStat, caption = "Rentals by Hour (Day Off")
 
-dayOffBox <- ggplot(dayOff, aes(x = rentals, y = hours, color = hours))
-dayOffBox + geom_boxplot() + labs(title = "Rentals by Hours (Day Off)")
+dayOffBox <- ggplot(dayOff, aes(x = rentals, y = hour, color = hour))
+dayOffBox + geom_boxplot() + labs(title = "Rentals by Hour (Day Off)")
 
-dayOn <- sumBikeData %>% filter(workday == 1)
-dayOnStat <- dayOn %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+dayOn <- sumBikeTrain %>% filter(workday == 1)
+dayOnStat <- dayOn %>% group_by(hour) %>% mutate(rental_mean = round(mean(rentals),
                                                                       digits = 2), 
                                                   rental_sum = round(sum(rentals),
                                                                      digits = 2)) %>% 
-                                                  select(hours, rental_mean, rental_sum)
+                                                  select(hour, rental_mean, rental_sum)
 dayOnStat <- as_tibble(unique(dayOnStat))
-kable(dayOnStat, caption = "Rentals by Hours (Work Day)")
+kable(dayOnStat, caption = "Rentals by Time of Day (Work Day)")
 
-dayOnBox <- ggplot(dayOn, aes(x = rentals, y = hours, color = hours))
-dayOnBox + geom_boxplot() + labs(title = "Rentals by Hours (Work Day)")
+dayOnBox <- ggplot(dayOn, aes(x = rentals, y = hour, color = hour))
+dayOnBox + geom_boxplot() + labs(title = "Rentals by Time of Day (Work Day)")
 
 
 ```
 
 ```{r, quantstats}
 # 
-quantStats <- sumBikeData %>%  select(c(4, 5, 6, 9)) %>% apply(2, summary)
-kable(round((quantStats), 2), caption = "Summary: Quantitative Varibles")
-```
-```{r, rental correlations}
-rentalCor <- select(sumBikeData, c(temp, humidity, windspeed, rentals))
-rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
-kable(select(rentalCor, rentals), caption = "Rental Correlations")
+quantStats <- sumBikeTrain %>% select(c(4, 5, 6, 9)) %>% apply(2, summary)
 
+rentalCor <- select(sumBikeTrain, c(temp, humidity, windspeed, rentals))
+rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
+
+
+kable(round((quantStats), 2), caption = "Summary: Quantitative Varibles")
+kable(rentalCor, caption = "Rental Correlations")
 ```
 
 ```{r, temp plots}
 # Base plot aesthetic with Total Points on x axis
 
-tempPoint_season <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = season))
+tempPoint_season <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = season))
 
 # Avg PM point plot
-tempPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+tempPoint_season + geom_point() + geom_smooth(aes(group = season,), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Season Rentals by Temperature") +
             facet_wrap(~ season)
 
-tempPoint_weather <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = weather))
+tempPoint_weather <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = weather))
 
-tempPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+tempPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Weather Rentals by Temperature") +
             facet_wrap(~ weather)
 
-tempPoint_hours <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = hours))
+tempPoint_hour <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = hour))
 
-tempPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
-            scale_fill_continuous() + labs(title =  "Hours Rentals by Temperature") +
-            facet_wrap(~ hours)
+tempPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+            scale_fill_continuous() + labs(title =  "Time of Day Rentals by Temperature") +
+            facet_wrap(~ hour)
 ```
 
 
 ```{r, humidity plots}
 # Base plot aesthetic with Total Points on x axis
 
-humPoint_season <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = season))
+humPoint_season <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = season))
 
 # Avg PM point plot
-humPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+humPoint_season + geom_point() + geom_smooth(aes(group = season), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Season Rentals by Humidity") +
             facet_wrap(~ season)
 
-humPoint_weather <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = weather))
+humPoint_weather <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = weather))
 
-humPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+humPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Weather Rentals by Humidity") +
             facet_wrap(~ weather)
 
-humPoint_hours <- ggplot(sumBikeData, aes(x = humidity, y = rentals, color = hours))
+humPoint_hour <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = hour))
 
-humPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
-            scale_fill_continuous() + labs(title =  "Hours Rentals by Humidity") +
-            facet_wrap(~ hours)
+humPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+            scale_fill_continuous() + labs(title =  "Time of Day Rentals by Humidity") +
+            facet_wrap(~ hour)
 ```
 
 ```{r, wind plots}
 
 # Base plot aesthetic with Total Points on x axis
 
-windPoint_season <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = season))
+windPoint_season <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = season))
 
 # Avg PM point plot
-windPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+windPoint_season + geom_point() + geom_smooth(aes(group = season), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Season Rentals by Wind Speed") +
             facet_wrap(~ season)
 
-windPoint_weather <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = weather))
+windPoint_weather <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = weather))
 
-windPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+windPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
             scale_fill_continuous() + labs(title =  "Weather Rentals by Wind Speed") +
             facet_wrap(~ weather)
 
-windPoint_hours <- ggplot(sumBikeData, aes(x = windspeed, y = rentals, color = hours))
+windPoint_hour <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = hour))
 
-windPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
-            scale_fill_continuous() + labs(title =  "Hours Rentals by Wind Speed") +
-            facet_wrap(~ hours)
+windPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+            scale_fill_continuous() + labs(title =  "Time of Day Rentals by Wind Speed") +
+            facet_wrap(~ hour)
+```
+
+
+# Modeling
+
+words
+
+
+### Post Summary Analysis Train & Test Data
+
+```{r, modeling}
+
+bikeTrain1 <- bikeTrain %>% select(season, hr, weathersit, temp, hum, cnt) %>%
+                                   rename("hour" = hr, "weather" = weathersit,
+                                   "humidity" = hum, "rentals" = cnt)
+# select new vars for analysis 
+bikeTrain1 <- bikeTrain1 %>% select(c(season, hour, weather, temp, humidity, rentals)) 
+                             
+str(bikeTrain1)
+
+bikeTest1 <- bikeTest %>% select(season, hr, weathersit, temp, hum, cnt) %>% 
+                                 rename("hour" = hr, "weather" = weathersit,
+                                 "humidity" = hum, "rentals" = cnt)
+
+# select new vars for analysis 
+bikeTest1 <- bikeTest1 %>% select(c(season, hour, weather, temp, humidity, rentals)) 
+                           
+str(bikeTest1)
+```
+## Tree Based Model (non-ensemble)
+
+words
+
+
+```{r, classification trees}
+# CP values
+tune <- c(0, .05, .01, .015, .02)
+ 
+# Train system tuned CP
+
+rfit_all <- train(rentals ~ ., data = bikeTrain1,
+                  method = "rpart", preProcess = 
+                  c("center", "scale"), trControl = 
+                  trainControl(method = "LOOCV"))
+plot(varImp(rfit_all))
+
+
+rfit_tmp_hum_hr <- train(rentals ~ temp + season + hour, data = bikeTrain1,
+                         method = "rpart", preProcess = 
+                         c("center", "scale"), trControl = 
+                         trainControl(method = "LOOCV"), tuneLength = 5)
+rfit_tmp_hum_hr$results[, c(1,2)]
+
+
+ufit_tmp_hum_hr <- train(rentals ~ temp + season + hour, data = bikeTrain1,
+                         method = "rpart", preProcess = 
+                         c("center", "scale"), trControl = 
+                         trainControl(method = "LOOCV"), tuneGrid = expand.grid(cp = tune))
+ufit_tmp_hum_hr$results[, c(1,2)]
+
+ufitTuned <- train(rentals ~ temp + season + hour, data = bikeTrain1,
+                   method = "rpart", preProcess = 
+                   c("center", "scale"), trControl = 
+                   trainControl(method = "LOOCV"), tuneGrid = expand.grid(cp = .01))
+ufitTuned$results[, c(1,2)]
+plot(ufitTuned$finalModel)
+text(ufitTuned$finalModel, pretty = 1, cex = .8)
+
+```
+
+
 ```
