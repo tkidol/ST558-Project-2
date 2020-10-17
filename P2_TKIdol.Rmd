@@ -23,7 +23,14 @@ library(dplyr)
 library(gbm)
 library(data.table)
 ```
+# Day
 
+```{r, day, echo = FALSE, eval = TRUE}
+
+reportDay <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+paste("This report is for:", reportDay[params$day])
+```
 
 # Introduction
 
@@ -61,6 +68,8 @@ bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% m
 
 # filter for individual weekday reporting
 bikeData <- bikeData  %>% filter(weekday == params$day)
+
+
 
 # split data 70% train & 30% test
 set.seed(100)

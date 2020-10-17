@@ -79,7 +79,7 @@ model for prediction
 Data Table
 ----------
 
-Used for setattr function to change row names in prediction outpu
+Used for setattr function to change row names in prediction output
 
 Render Code
 ===========
