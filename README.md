@@ -87,12 +87,12 @@ Render Code
 Link to file
 [here](https://github.com/tkidol/ST558-Project-2/blob/main/P2_Render.Rmd)
 
-\`ibrary(dplyr) library(rmarkdown)
+\` library(dplyr) library(rmarkdown)
 
 charDay &lt;- c(“Sunday”, “Monday”, “Tuesday”, “Wednesday”, “Thursday”,
 “Friday”, “Saturday”)
 
-numDay &lt;- c(“0”, “1”, “2”, “3”, “4”, “5”, “6”)
+numDay &lt;- c(0, 1, 2, 3, 4, 5, 6)
 
 output\_file &lt;- paste0(charDay,“Analysis.md”)
 
@@ -101,4 +101,6 @@ params &lt;- lapply(numDay, FUN = function(x) (list(day = x)))
 reports &lt;- tibble(output\_file, params)
 
 apply(reports, MARGIN = 1, FUN = function(x) { render(“P2\_TKIdol.Rmd”,
-output\_file = x\[\[1\]\], params = x\[\[2\]\]) })\`
+output\_file = x\[\[1\]\], params = x\[\[2\]\]) })
+
+\`
