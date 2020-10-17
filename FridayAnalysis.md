@@ -3,7 +3,6 @@ Daily Bicycle Analysis
 Todd Idol
 10/10/2020
 
--   [Day](#day)
 -   [Introduction](#introduction)
 -   [Data](#data)
 -   [Summary Analysis](#summary-analysis)
@@ -14,11 +13,6 @@ Todd Idol
         (non-ensemble)](#tree-based-model-non-ensemble)
     -   [Boosted Tree Model](#boosted-tree-model)
     -   [Prediction Discussion](#prediction-discussion)
-
-Day
-===
-
-    ## [1] "This report is for: NA"
 
 Introduction
 ============
@@ -69,12 +63,10 @@ Data
     bikeData <- read.csv("hour.csv")
 
     # remove casual & registered vars since they will not be used for modeling
-    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(weekday = as.factor(weekday))
+    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered"))
 
     # filter for individual weekday reporting
     bikeData <- bikeData  %>% filter(weekday == params$day)
-
-
 
     # split data 70% train & 30% test
     set.seed(100)
