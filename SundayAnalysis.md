@@ -63,7 +63,7 @@ Data
     bikeData <- read.csv("hour.csv")
 
     # remove casual & registered vars since they will not be used for modeling
-    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(weekday = as.factor(weekday))
+    bikeData <- bikeData  %>% select(everything(), -c("casual", "registered"))
 
     # filter for individual weekday reporting
     bikeData <- bikeData  %>% filter(weekday == params$day)
