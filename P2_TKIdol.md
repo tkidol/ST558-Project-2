@@ -1,202 +1,162 @@
-Bicycle Analysis
+Daily Bicycle Analysis
 ================
 Todd Idol
 10/10/2020
 
--   [Project Repo](#project-repo)
--   [Weekly Analysis](#weekly-analysis)
--   [Packages](#packages)
-    -   [Tidyverse](#tidyverse)
-    -   [Rmarkdown](#rmarkdown)
-    -   [Caret](#caret)
--   [Set Parameters & Knit](#set-parameters-knit)
 -   [Introduction](#introduction)
 -   [Data](#data)
--   [Summarizations](#summarizations)
-    -   [Summaries for Season & Weather](#summaries-for-season-weather)
-
-Project Repo
-============
-
-Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
-
-Weekly Analysis
-===============
-
--   The analysis for [Sunday is available here](SundayAnalysis.md).
-
--   The analysis for [Monday is available here](MondayAnalysis.md).
-
--   The analysis for [Tuesday is available here](TuesdayAnalysis.md).
-
--   The analysis for [Wednesday is available here](Wedesdaynalysis.md).
-
--   The analysis for [Thursday is available here](ThursdayAnalysis.md).
-
--   The analysis for [Friday is available here](FridayAnalysis.md).
-
--   The analysis for [Saturday is available here](SaturdayAnalysis.md).
-
-Packages
-========
-
-Tidyverse
----------
-
-The workhorse of this project for 3 main core packages: DPLYR -
-manipulated all of my data (selects, joins, filter, new variables… ),
-Tibble for rendering Data Frames more effectively, & () ggplot2 for
-discrete & continuous data plots
-
-Rmarkdown
----------
-
-Key to the project for the Rmd file itself including the knitr::
-functions for consumable object output (kable) & README.md github doc
-output through render()
-
-Caret
------
-
-Used to create standardized train/test data & create controls and tuning
-for LM & GLM analysis
-
-Set Parameters & Knit
-=====================
+-   [Summary Analysis](#summary-analysis)
+    -   [Categorical Data](#categorical-data)
+    -   [Qunatitative Summaries](#qunatitative-summaries)
+-   [Modeling](#modeling)
+    -   [Tree Based Model
+        (non-ensemble)](#tree-based-model-non-ensemble)
+    -   [Boosted Tree Model](#boosted-tree-model)
+    -   [Prediction Discussion](#prediction-discussion)
 
 Introduction
 ============
 
-You should have an introduction section that briefly describes the data
-and the variables you have to work with (no need to discuss all of them,
-just the ones you want to use). If you are analyzing the bike share
-data, do not use the casual and registered variables to do any modeling!
-You should also mention the purpose of your analysis and the methods
-you’ll use (no need to detail them here) for analysis.
+The data for the bicycle rental analysis and prediction consists of
+hourly rental information each day for a two year period (2011 & 2012)
+totaling &gt; 17k observations. The goal of the project is to predict
+number of rentals for each day based on a set of predictors.
+
+The data is split into 70% training & 30% test sets. The training set is
+used for an initial summary analysis to determine optimal predictors and
+suitable predictive models. Categorical variables are converted from
+numbers to factors for the summary analysis and renamed for more
+relevant interpretation. Those were:
+
+-   season (“winter”, “spring”, “summer”, "fall)
+
+-   hour (divided into: “late night”, “AM commute”, “mid day”, “PM
+    commute”, “night”)
+
+-   weather (“clear”, “mist”, “light precip”, “heavy pricip”)
+
+-   workday (“no”, “yes”)
+
+-   dteday
+
+Numerical predictors considered in the summary analysis are: temp,
+humidity and windspeed
+
+Categorical summaries include a table for rental mean and rental total
+for each factor and boxplots for each factor.
+
+Numeric summaries include a 5 number summary, pairwise correlation table
+and scatter plots + lm faceted by season, hour & weather for each
+numeric variable.
+
+Based on analysis of these variables final training / test sets were
+developed on season, hour, weather, temp, and humidity. These sets were
+used to conduct Regression Tree and Boosted Regression tree training and
+prediction models. More info about predictor considerations and final
+model criteria with test results are discussed in the “Modeling”
+section.
 
 Data
 ====
 
+    # read in csv data
     bikeData <- read.csv("hour.csv")
 
-    # removing casual & registered vars since they will not be used for modeling
+    # remove casual & registered vars since they will not be used for modeling
     bikeData <- bikeData  %>% select(everything(), -c("casual", "registered")) %>% mutate(weekday = as.factor(weekday))
 
-    # filtering for individual weekday reporting
+    # filter for individual weekday reporting
     bikeData <- bikeData  %>% filter(weekday == params$day)
 
-    latenight <- bikeData %>% filter(hr == 3)
-    latenightcount <- sum(latenight$cnt)
-    latenightcount
+    # split data 70% train & 30% test
+    set.seed(100)
+    trainIndex <- createDataPartition(bikeData$cnt, p = .7, list = FALSE)
 
-    ## [1] 496
+    bikeTrain <- bikeData[trainIndex, ]
+    bikeTest <- bikeData[-trainIndex, ]
 
-Summarizations
-==============
+### Summary Data
 
-    sumBikeData <- bikeData %>% select(dteday, season, hr, workingday, weathersit, temp, hum, windspeed, cnt)
+    # select vars for summary analysis from the bike data training set
+    sumBikeTrain <- bikeTrain %>% select(dteday, season, hr, workingday, weathersit, temp, hum, windspeed, cnt)
 
-    # create factors for season, timeofday and weather
-    sumBikeData <- mutate(sumBikeData, workday = as.factor(ifelse(sumBikeData$workingday == 0, "no", "yes")),
-                                       season = as.factor(ifelse(sumBikeData$season == 1, "winter",
-                                                          ifelse(sumBikeData$season == 2, "spring",
-                                                          ifelse(sumBikeData$season == 3, "summer", "fall")
-                                                          ))),
-                                       hours = as.factor(ifelse((sumBikeData$hr > 3) & (sumBikeData$hr < 6),
-                                                               "earyl AM", 
-                                                         ifelse((sumBikeData$hr >= 6) & (sumBikeData$hr < 10), 
-                                                               "AM commute", 
-                                                         ifelse((sumBikeData$hr >= 10) & (sumBikeData$hr < 16),
+    # create practical factors for season, hour(time of day)y and weather
+    sumBikeTrain <- mutate(sumBikeTrain, workday = as.factor(ifelse(sumBikeTrain$workingday == 0, "no", "yes")),
+                           
+                                         season = as.factor(ifelse(sumBikeTrain$season == 1, "winter",
+                                                            ifelse(sumBikeTrain$season == 2, "spring",
+                                                            ifelse(sumBikeTrain$season == 3, "summer", "fall")
+                                                           ))),
+                           
+                                         hour = as.factor(ifelse((sumBikeTrain$hr >= 6) & (sumBikeTrain$hr < 10), 
+                                                                "AM commute", 
+                                                          ifelse((sumBikeTrain$hr >= 10) & (sumBikeTrain$hr < 16),
                                                                "mid day", 
-                                                         ifelse((sumBikeData$hr >= 16 )& (sumBikeData$hr < 20), 
+                                                          ifelse((sumBikeTrain$hr >= 16 )& (sumBikeTrain$hr < 20), 
                                                                "PM commute", 
-                                                         ifelse((sumBikeData$hr >= 20) & (sumBikeData$hr <= 23),
+                                                          ifelse((sumBikeTrain$hr >= 20) & (sumBikeTrain$hr <= 23),
                                                                "night", "late night")
-                                                        ))))),
-                                       weather = as.factor(ifelse(sumBikeData$weathersit == 1, "clear", 
-                                                           ifelse(sumBikeData$weathersit == 2, "mist",
-                                                           ifelse(sumBikeData$weathersit == 3, "light precip", 
+                                                         )))),
+                           
+                                         weather = as.factor(ifelse(sumBikeTrain$weathersit == 1, "clear", 
+                                                             ifelse(sumBikeTrain$weathersit == 2, "mist",
+                                                             ifelse(sumBikeTrain$weathersit == 3, "light precip", 
                                                                                                "heavy precip")
-                                                          ))))
+                                                           ))))
                                       
-    # select new vars for analysis 
-    sumBikeData <- sumBikeData %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hours, cnt) %>% 
-                                   rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
-    head(filter(sumBikeData, hours == "late night"), n = 20)
+    # select final vars for analysis 
+    sumBikeTrain <- sumBikeTrain %>% select(dteday, season, weather, temp, hum, windspeed, workingday, hour, cnt) %>% 
+                                    rename("humidity" = hum, "rentals" = cnt, "workday" = workingday)
 
-    ##        dteday season weather temp humidity windspeed workday      hours rentals
-    ## 1  2011-01-03 winter   clear 0.22     0.44    0.3582       1 late night       5
-    ## 2  2011-01-03 winter   clear 0.20     0.44    0.4179       1 late night       2
-    ## 3  2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       5
-    ## 4  2011-01-10 winter   clear 0.12     0.50    0.2836       1 late night       1
-    ## 5  2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       3
-    ## 6  2011-01-10 winter   clear 0.12     0.50    0.2239       1 late night       1
-    ## 7  2011-01-17 winter    mist 0.20     0.47    0.2239       0 late night      17
-    ## 8  2011-01-17 winter    mist 0.20     0.44    0.1940       0 late night      16
-    ## 9  2011-01-17 winter    mist 0.18     0.43    0.2537       0 late night       8
-    ## 10 2011-01-17 winter    mist 0.18     0.43    0.1940       0 late night       2
-    ## 11 2011-01-24 winter   clear 0.06     0.41    0.1940       1 late night       7
-    ## 12 2011-01-24 winter   clear 0.04     0.45    0.1940       1 late night       1
-    ## 13 2011-01-24 winter   clear 0.04     0.45    0.2537       1 late night       1
-    ## 14 2011-01-31 winter    mist 0.24     0.65    0.2239       1 late night       7
-    ## 15 2011-01-31 winter   clear 0.22     0.64    0.2537       1 late night       7
-    ## 16 2011-01-31 winter   clear 0.22     0.64    0.1940       1 late night       1
-    ## 17 2011-01-31 winter   clear 0.22     0.64    0.1940       1 late night       2
-    ## 18 2011-02-07 winter   clear 0.24     0.65    0.0000       1 late night      15
-    ## 19 2011-02-07 winter   clear 0.22     0.75    0.0000       1 late night       5
-    ## 20 2011-02-07 winter   clear 0.20     0.80    0.0000       1 late night       3
+### Modeling Data
 
-Summaries for Season & Weather
-------------------------------
+    # select vars for regression tree / boosted tree model training
+    bikeTrain1 <- sumBikeTrain %>% select(c(season, hour, weather, temp, humidity, rentals))
 
-    # Function to knit 5 number sum + ean given season
-    sumSeason <- function(x, ...) {
-      summ <- sumBikeData %>% filter(season == x) %>% select(9) %>% apply(2, sum)
-      kable(round(summ, 2), caption = paste0("Season: ", x))
-    }
+    # create test factors to match training set
+    bikeTest1 <- bikeTest %>% select(c(season, hr, weathersit, temp, hum, cnt)) %>%
+                              mutate(season = as.factor(ifelse(bikeTest$season == 1, "winter",
+                                                        ifelse(bikeTest$season == 2, "spring",
+                                                        ifelse(bikeTest$season == 3, "summer", "fall")
+                                                       ))),
+                           
+                                     hour = as.factor(ifelse((bikeTest$hr >= 6) & (bikeTest$hr < 10), "AM commute", 
+                                                      ifelse((bikeTest$hr >= 10) & (bikeTest$hr < 16), "mid day", 
+                                                      ifelse((bikeTest$hr >= 16 )& (bikeTest$hr < 20), "PM commute", 
+                                                      ifelse((bikeTest$hr >= 20) & (bikeTest$hr <= 23), "night", "late night")
+                                                     )))),
+                           
+                                     weather = as.factor(ifelse(bikeTest$weathersit == 1, "clear", 
+                                                         ifelse(bikeTest$weathersit == 2, "mist",
+                                                         ifelse(bikeTest$weathersit == 3, "light precip", "heavy precip")
+                                                        )))) %>%
+                               rename("humidity" = hum, "rentals" = cnt)
 
-    # Summaries for Winter
-    sumSeason("winter")
+    # select vars to test models
+    bikeTest1 <- bikeTest1 %>% select(c(season, hour, weather, temp, humidity, rentals))        
 
-|         |     x |
-|:--------|------:|
-| rentals | 63771 |
+Summary Analysis
+================
 
-Season: winter
+Categorical Data
+----------------
 
-    # Summaries for Spring
-    sumSeason("spring")
+Mean rentals(count) and total rentals are produced for each factor
+(“season”, “weather” & “hour”) to complement the box plots generated for
+each factor.
 
-|         |      x |
-|:--------|-------:|
-| rentals | 123255 |
-
-Season: spring
-
-    # Summaries for Summer
-    sumSeason("summer")
-
-|         |      x |
-|:--------|-------:|
-| rentals | 146307 |
-
-Season: summer
-
-    # Summaries for Fall
-    sumSeason("fall")
-
-|         |      x |
-|:--------|-------:|
-| rentals | 122170 |
-
-Season: fall
-
+    # function to return rental mean and rental totals for weather, season and hour
     sum_meanFx <- function(cat, ...) {
-       if ((!is.null(cat) & (!is.character(cat) & (cat %in% sumBikeData[2])))) 
+       
+       # verify data is valid
+       if ((!is.null(cat) & (!is.character(cat)) & ((cat %in% sumBikeTrain[2]) |
+                                                    (cat %in% sumBikeTrain[3]) |
+                                                    (cat %in% sumBikeTrain[8]))))
         stop("invalid input")
-                                                                         
+       
+       # return values for season                                                                  
        if (cat == "season") { 
-         seasonSum_Mean <- sumBikeData %>% group_by(season) %>%
+         seasonSum_Mean <- sumBikeTrain %>% group_by(season) %>%
                                            mutate(rental_mean = round(mean(rentals),
                                                                      digits = 2), 
                                                   rental_sum = round(sum(rentals),
@@ -204,9 +164,10 @@ Season: fall
                                            select(season, rental_mean, rental_sum)
          seasonSum_Mean <- as_tibble(unique(seasonSum_Mean))
          return(seasonSum_Mean)
-         
+       
+       # return values for weather  
        } else if (cat == "weather") {
-          weatherSum_Mean <- sumBikeData %>% group_by(weather) %>%
+          weatherSum_Mean <- sumBikeTrain %>% group_by(weather) %>%
                                              mutate(rental_mean = round(mean(rentals),
                                                                        digits = 2), 
                                                     rental_sum = round(sum(rentals),
@@ -214,162 +175,533 @@ Season: fall
                                              select(weather, rental_mean, rental_sum) 
           weatherSum_Mean <- as_tibble(unique(weatherSum_Mean))
           return(weatherSum_Mean)
-           
-       } else if (cat == "hours") {
-          hoursSum_Mean <- sumBikeData %>% group_by(hours) %>% 
+       
+       # return values for hour    
+       } else if (cat == "hour") {
+          hourSum_Mean <- sumBikeTrain %>% group_by(hour) %>% 
                                            mutate(rental_mean = round(mean(rentals),
                                                                      digits = 2), 
                                                   rental_sum = round(sum(rentals),
                                                                     digits = 2)) %>% 
-                                           select(hours, rental_mean, rental_sum)
-           hoursSum_Mean <- as_tibble(unique(hoursSum_Mean))
-           return(hoursSum_Mean)
+                                           select(hour, rental_mean, rental_sum)
+           hourSum_Mean <- as_tibble(unique(hourSum_Mean))
+           return(hourSum_Mean)
            
        } else {
            return(null)
        }
     }
 
+### Season Summary & Box Plot
+
+    # call sum_mean function and output season summary
     kable(sum_meanFx("season"), caption = "Rentals by Season")
 
 | season | rental\_mean | rental\_sum |
 |:-------|-------------:|------------:|
-| winter |       104.20 |       63771 |
-| spring |       191.39 |      123255 |
-| summer |       234.84 |      146307 |
-| fall   |       203.62 |      122170 |
+| winter |       108.27 |       45691 |
+| spring |       187.15 |       85341 |
+| summer |       229.02 |      101456 |
+| fall   |       205.06 |       85303 |
 
 Rentals by Season
 
-    seasonBox <- ggplot(sumBikeData, aes(x = rentals, y = season, color = season))
+    # box plot for season
+    seasonBox <- ggplot(sumBikeTrain, aes(x = rentals, y = season, color = season))
     seasonBox + geom_boxplot() + labs(title = "Rentals by Season")
 
 ![](P2_TKIdol_files/figure-gfm/season%20statbox-1.png)<!-- -->
 
+### Weather Summary & Box plot
+
+    # call sum_mean function and output summary
     kable(sum_meanFx("weather"), caption = "Rentals by Weather Condition")
 
 | weather      | rental\_mean | rental\_sum |
 |:-------------|-------------:|------------:|
-| clear        |       191.84 |      303497 |
-| mist         |       181.66 |      131883 |
-| light precip |       117.41 |       19959 |
+| clear        |       189.74 |      211943 |
+| mist         |       182.39 |       91926 |
+| light precip |       119.63 |       13758 |
 | heavy precip |       164.00 |         164 |
 
 Rentals by Weather Condition
 
-    weatherBox <- ggplot(sumBikeData, aes(x = rentals, y = weather, color = weather))
+    # weather boxplot
+    weatherBox <- ggplot(sumBikeTrain, aes(x = rentals, y = weather, color = weather))
     weatherBox + geom_boxplot() + labs(title = "Rentals by Weather Condiion")
 
 ![](P2_TKIdol_files/figure-gfm/weather%20statbox-1.png)<!-- -->
 
-    kable(sum_meanFx("hours"), caption = "Rentals by Hours")
+### Hour Summary & Box Plot
 
-| hours      | rental\_mean | rental\_sum |
+    # call sum_mean function & output summary
+    kable(sum_meanFx("hour"), caption = "Rentals by Hour")
+
+| hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        17.01 |        6888 |
-| earyl AM   |        13.96 |        2819 |
-| AM commute |       241.26 |      100364 |
-| mid day    |       185.15 |      115535 |
-| PM commute |       403.19 |      167728 |
-| night      |       149.44 |       62169 |
+| late night |        16.67 |        7067 |
+| AM commute |       237.68 |       65601 |
+| mid day    |       185.90 |       84400 |
+| PM commute |       408.90 |      117354 |
+| night      |       146.52 |       43369 |
 
-Rentals by Hours
+Rentals by Hour
 
-    hoursBox <- ggplot(sumBikeData, aes(x = rentals, y = hours, color = hours))
-    hoursBox + geom_boxplot() + labs(title = "Rentals by Hours")
+    # hour boxplot
+    hourBox <- ggplot(sumBikeTrain, aes(x = rentals, y = hour, color = hour))
+    hourBox + geom_boxplot() + labs(title = "Rentals by Hour")
 
-![](P2_TKIdol_files/figure-gfm/hours%20statbox-1.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/hour%20statbox-1.png)<!-- -->
 
-    dayOff <- sumBikeData %>% filter(workday == 0)
-    dayOffStat <- dayOff %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+    # hour summary for days off
+    dayOff <- sumBikeTrain %>% filter(workday == 0)
+    dayOffStat <- dayOff %>% group_by(hour) %>% mutate(rental_mean = round(mean(rentals),
                                                                             digits = 2), 
                                                         rental_sum = round(sum(rentals),
                                                                            digits = 2)) %>% 
-                                                        select(hours, rental_mean, rental_sum)
+                                                select(hour, rental_mean, rental_sum)
+
+    # create day off summary tibble and output summary
     dayOffStat <- as_tibble(unique(dayOffStat))
-    kable(dayOffStat, caption = "Rentals by Hours (Day Off")
+    kable(dayOffStat, caption = "Rentals by Hour (Day Off")
 
-| hours      | rental\_mean | rental\_sum |
+| hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        34.09 |        1977 |
-| earyl AM   |         8.28 |         240 |
-| AM commute |       118.85 |        7131 |
-| mid day    |       280.84 |       25276 |
-| PM commute |       293.93 |       17636 |
-| night      |       122.42 |        7345 |
+| late night |        27.51 |        1623 |
+| AM commute |       111.50 |        4906 |
+| mid day    |       277.27 |       17468 |
+| PM commute |       287.91 |       12380 |
+| night      |       106.40 |        4575 |
 
-Rentals by Hours (Day Off
+Rentals by Hour (Day Off
 
-    dayOffBox <- ggplot(dayOff, aes(x = rentals, y = hours, color = hours))
-    dayOffBox + geom_boxplot() + labs(title = "Rentals by Hours (Day Off)")
+    # days off boxplot
+    dayOffBox <- ggplot(dayOff, aes(x = rentals, y = hour, color = hour))
+    dayOffBox + geom_boxplot() + labs(title = "Rentals by Hour (Day Off)")
 
-![](P2_TKIdol_files/figure-gfm/hours%20statbox-2.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/hour%20statbox-2.png)<!-- -->
 
-    dayOn <- sumBikeData %>% filter(workday == 1)
-    dayOnStat <- dayOn %>% group_by(hours) %>% mutate(rental_mean = round(mean(rentals),
+    # hour summary for workdays
+    dayOn <- sumBikeTrain %>% filter(workday == 1)
+    dayOnStat <- dayOn %>% group_by(hour) %>% mutate(rental_mean = round(mean(rentals),
                                                                           digits = 2), 
                                                       rental_sum = round(sum(rentals),
-                                                                         digits = 2)) %>% 
-                                                      select(hours, rental_mean, rental_sum)
+                                                                         digits = 2)) %>%
+                                              select(hour, rental_mean, rental_sum)
+
+    # create work day summary tibble and output summary
     dayOnStat <- as_tibble(unique(dayOnStat))
-    kable(dayOnStat, caption = "Rentals by Hours (Work Day)")
+    kable(dayOnStat, caption = "Rentals by Time of Day (Work Day)")
 
-| hours      | rental\_mean | rental\_sum |
+| hour       | rental\_mean | rental\_sum |
 |:-----------|-------------:|------------:|
-| late night |        14.15 |        4911 |
-| earyl AM   |        14.91 |        2579 |
-| AM commute |       261.89 |       93233 |
-| mid day    |       169.02 |       90259 |
-| PM commute |       421.61 |      150092 |
-| night      |       154.00 |       54824 |
+| late night |        14.92 |        5444 |
+| AM commute |       261.62 |       60695 |
+| mid day    |       171.18 |       66932 |
+| PM commute |       430.22 |      104974 |
+| night      |       153.34 |       38794 |
 
-Rentals by Hours (Work Day)
+Rentals by Time of Day (Work Day)
 
-    dayOnBox <- ggplot(dayOn, aes(x = rentals, y = hours, color = hours))
-    dayOnBox + geom_boxplot() + labs(title = "Rentals by Hours (Work Day)")
+    # workday boxplot
+    dayOnBox <- ggplot(dayOn, aes(x = rentals, y = hour, color = hour))
+    dayOnBox + geom_boxplot() + labs(title = "Rentals by Time of Day (Work Day)")
 
-![](P2_TKIdol_files/figure-gfm/hours%20statbox-3.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/hour%20statbox-3.png)<!-- -->
 
-    # 
-    quantStats <- sumBikeData %>%  select(c(4, 5, 6, 9)) %>% apply(2, summary)
+Qunatitative Summaries
+----------------------
+
+### Numeric Data & Plots
+
+Five number summaries + mean and a correlation matrix are produced for
+“temp”, “humidity”, “windspeed” and “rentals” (count). Point plots with
+regression lines are produced for each categorical variable (“season”,
+“weather”, “hour” and “workday”)
+
+    # summary for numeric dat
+    quantStats <- sumBikeTrain %>% select(c(4, 5, 6, 9)) %>% apply(2, summary)
+
+    # create correlations for numeric vars
+    rentalCor <- select(sumBikeTrain, c(temp, humidity, windspeed, rentals))
+    # correlations as data frame
+    rentalCor <- as.data.frame(round(cor(rentalCor), digits = 2))
+
+    # output 5 number summary + mean and pw correlations
     kable(round((quantStats), 2), caption = "Summary: Quantitative Varibles")
 
 |         | temp | humidity | windspeed | rentals |
 |:--------|-----:|---------:|----------:|--------:|
 | Min.    | 0.02 |     0.15 |      0.00 |    1.00 |
 | 1st Qu. | 0.34 |     0.49 |      0.10 |   37.00 |
-| Median  | 0.52 |     0.64 |      0.16 |  139.00 |
-| Mean    | 0.50 |     0.64 |      0.19 |  183.74 |
+| Median  | 0.52 |     0.64 |      0.19 |  138.00 |
+| Mean    | 0.50 |     0.63 |      0.19 |  182.95 |
 | 3rd Qu. | 0.66 |     0.78 |      0.25 |  268.00 |
-| Max.    | 0.92 |     1.00 |      0.72 |  968.00 |
+| Max.    | 0.90 |     1.00 |      0.72 |  968.00 |
 
 Summary: Quantitative Varibles
 
-    # Base plot aesthetic with Total Points on x axis
+    kable(rentalCor, caption = "Rental Correlations")
 
-    tempPoint_season <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = season))
+|           |  temp | humidity | windspeed | rentals |
+|:----------|------:|---------:|----------:|--------:|
+| temp      |  1.00 |    -0.05 |      0.06 |    0.37 |
+| humidity  | -0.05 |     1.00 |     -0.38 |   -0.27 |
+| windspeed |  0.06 |    -0.38 |      1.00 |    0.13 |
+| rentals   |  0.37 |    -0.27 |      0.13 |    1.00 |
 
-    # Avg PM point plot
-    tempPoint_season + geom_point() + geom_smooth(aes(group = season, color = "white"), method = lm) + 
+Rental Correlations
+
+### Rentals by Temp Plots by Category
+
+    # base aesthetic for rentals by temp for season
+    tempPoint_season <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = season))
+
+    # rentals by temp by season point plot
+    tempPoint_season + geom_point() + geom_smooth(aes(group = season,), method = lm, col = "black") + 
                 scale_fill_continuous() + labs(title =  "Season Rentals by Temperature") +
                 facet_wrap(~ season)
 
-![](P2_TKIdol_files/figure-gfm/quant%20plots-1.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/temp%20plots-1.png)<!-- -->
 
-    tempPoint_weather <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = weather))
+    # base aesthetic for rentals by temp for weather
+    tempPoint_weather <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = weather))
 
-    tempPoint_weather + geom_point() + geom_smooth(aes(group = weather, color = "white"), method = lm) + 
+    # rentals by temp by weather point plot
+    tempPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
                 scale_fill_continuous() + labs(title =  "Weather Rentals by Temperature") +
                 facet_wrap(~ weather)
 
-![](P2_TKIdol_files/figure-gfm/quant%20plots-2.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/temp%20plots-2.png)<!-- -->
 
-    tempPoint_hours <- ggplot(sumBikeData, aes(x = temp, y = rentals, color = hours))
+    # base aesthetic for rentals by temp for hour
+    tempPoint_hour <- ggplot(sumBikeTrain, aes(x = temp, y = rentals, color = hour))
 
-    tempPoint_hours + geom_point() + geom_smooth(aes(group = hours, color = "white"), method = lm) + 
-                scale_fill_continuous() + labs(title =  "Hours Rentals by Temperature") +
-                facet_wrap(~ hours)
+    # rentals by temp by hour point plot
+    tempPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Time of Day Rentals by Temperature") +
+                facet_wrap(~ hour)
 
-![](P2_TKIdol_files/figure-gfm/quant%20plots-3.png)<!-- -->
+![](P2_TKIdol_files/figure-gfm/temp%20plots-3.png)<!-- -->
 
-ggpairs(select(sumBikeData, c(2, 9)), aes(color = season)) \`\`\`
+### Rentals by Humidity Plots by Category
+
+    # ase aesthetic for rentals by humidity for season
+    humPoint_season <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = season))
+
+    # rentals by humidity by season point plot
+    humPoint_season + geom_point() + geom_smooth(aes(group = season), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Humidity") +
+                facet_wrap(~ season)
+
+![](P2_TKIdol_files/figure-gfm/humidity%20plots-1.png)<!-- -->
+
+     # base aesthetic for rentals by humidity for weather
+    humPoint_weather <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = weather))
+
+    # rentals by humidity by weather point plot
+    humPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Humidity") +
+                facet_wrap(~ weather)
+
+![](P2_TKIdol_files/figure-gfm/humidity%20plots-2.png)<!-- -->
+
+    # base aeshtetic for rentals by humidity for hour
+    humPoint_hour <- ggplot(sumBikeTrain, aes(x = humidity, y = rentals, color = hour))
+
+    # rentals by humidity by hour point plot
+    humPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Time of Day Rentals by Humidity") +
+                facet_wrap(~ hour)
+
+![](P2_TKIdol_files/figure-gfm/humidity%20plots-3.png)<!-- -->
+
+### Rentals by Windspeed Plots by Category
+
+    # base aesthetic for rentals by windspeed for season
+    windPoint_season <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = season))
+
+    # rentals by windspeed by season point plot
+    windPoint_season + geom_point() + geom_smooth(aes(group = season), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Season Rentals by Wind Speed") +
+                facet_wrap(~ season)
+
+![](P2_TKIdol_files/figure-gfm/wind%20plots-1.png)<!-- -->
+
+    # base aesthetic for rentals by windspeed for weather
+    windPoint_weather <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = weather))
+
+    # rentals by windsped by weather point plot
+    windPoint_weather + geom_point() + geom_smooth(aes(group = weather), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Weather Rentals by Wind Speed") +
+                facet_wrap(~ weather)
+
+![](P2_TKIdol_files/figure-gfm/wind%20plots-2.png)<!-- -->
+
+    # base aesthetic for rentals by windspeed for hour
+    windPoint_hour <- ggplot(sumBikeTrain, aes(x = windspeed, y = rentals, color = hour))
+
+    # rentals by windsped by hour point plot
+    windPoint_hour + geom_point() + geom_smooth(aes(group = hour), method = lm, col = "black") + 
+                scale_fill_continuous() + labs(title =  "Time of Day Rentals by Wind Speed") +
+                facet_wrap(~ hour)
+
+![](P2_TKIdol_files/figure-gfm/wind%20plots-3.png)<!-- -->
+
+Modeling
+========
+
+Based on the summary analysis the “workday” variable and “windspeed”
+variables are removed for regression tree and boosted tree modeling.
+There were few observations for days off (only holidays) for weekdays
+and saturday and sunday are all days off. So the assessment for each day
+absorbs the “workday” variable. Windspeed had small correlation to
+“rentals” (cnt) and this was depicted in the point plots with near zero
+regression slopes per category. The final variables for R-Tree and
+Boosted Tree analysis are: “hour” (seems strong per summary data and box
+plots), “temp” (also strong summary data with highest positive
+correlation to rentals - born out in regression line by category),
+“humidity” (relatively strong correlation to rentals and distinct lines
+by category in point plots) “season”, and “weather”.
+
+Tree Based Model (non-ensemble)
+-------------------------------
+
+A Regression Tree model is used for the initial prediction. An iterative
+approach using “Leave One Out Cross Validation” is employed to determine
+the best variables and complexity parameter for lowest RMSE for a given
+computational time (unscientifically measured) were used to determine
+the final model. All predictors are initially trained with variable
+importance plot produced. The top 3 and bottom 3 (non-zero) most/least
+important factors were compared to the “all fit”. “Top 3 Fit” predictors
+had the the RMSE for the optimal computer generated CP as the “All Fit”.
+Adding additional predictors did not lower RMSE. Removing predictors
+increased RMSE. “Top 3 Fit” was chosen for tuning based on a vector of
+CP’s. The highest CP that did not significantly lower RMSE was chosen as
+the best Final Model. Prediction using the final model was run against
+the test data set with final results output
+
+### All 5 Preditor Fit - Program Defined CP
+
+    # train all predictors
+    rfitAll <- train(rentals ~ ., data = bikeTrain1,
+                      method = "rpart", preProcess = 
+                      c("center", "scale"), trControl = 
+                      trainControl(method = "LOOCV"))
+
+    # plot var importance
+    plot(varImp(rfitAll))
+
+![](P2_TKIdol_files/figure-gfm/rtree%20all-1.png)<!-- -->
+
+    # output results
+    round(rfitAll$results[, c(1,2)], digits = 2)
+
+    ##     cp   RMSE
+    ## 1 0.07 137.55
+    ## 2 0.16 156.57
+    ## 3 0.31 196.47
+
+### Top 3 Predictor Fit - Program Defined CP
+
+    # train top 3 predictors
+    rfitTop3 <- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
+                             method = "rpart", preProcess = 
+                             c("center", "scale"), trControl = 
+                             trainControl(method = "LOOCV"))
+     
+    # output results                        
+    kable(round(rfitTop3$results[, c(1,2)], digits = 2))
+
+|   cp |   RMSE |
+|-----:|-------:|
+| 0.07 | 137.55 |
+| 0.16 | 156.57 |
+| 0.31 | 196.47 |
+
+### Top 3 Fit - User Tuned
+
+    # create CP tuning vector
+    tune <- c(0, .01, .015, .02)
+     
+    # train top 3 predictors - tuned
+    ufitTop3X<- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
+                             method = "rpart", preProcess = 
+                             c("center", "scale"), trControl = 
+                             trainControl(method = "LOOCV"),
+                             tuneGrid = expand.grid(cp = tune))
+
+    # output results
+    kable(round(ufitTop3X$results[, c(1,2)], digits = 2))
+
+|   cp |   RMSE |
+|-----:|-------:|
+| 0.00 | 115.43 |
+| 0.01 | 120.39 |
+| 0.02 | 120.87 |
+| 0.02 | 120.09 |
+
+### Final Model
+
+    # train final model with best tuning parameter
+    ufitFinal <- train(rentals ~ temp + humidity + hour, data = bikeTrain1,
+                             method = "rpart", 
+                             preProcess = c("center", "scale"),
+                             trControl = trainControl(method = "LOOCV"), 
+                             tuneGrid = expand.grid(cp = .02))
+
+    # ouput results
+    plot(ufitFinal$finalModel)
+
+    # output final model
+    text(ufitFinal$finalModel, pretty = 1, cex = .8)
+
+![](P2_TKIdol_files/figure-gfm/rtree%20final%20model-1.png)<!-- -->
+
+### Prediction
+
+    # predict using final model on test data
+    ufitPred <- predict(ufitFinal, newdata = bikeTest1)
+
+    # create tibble of prediction results
+    ufitPred_results <- as_tibble(postResample(ufitPred, bikeTest1$rentals))
+
+    # round resulting values
+    ufitPred_results$value <- round(ufitPred_results$value, digits = 2)
+
+    # create relevant row names & output results
+    setattr(ufitPred_results, "row.names", c("RMSE", "Rsquared", "MAE"))
+    kable(ufitPred_results, caption = "Regression Tree Prediction Results")
+
+|          |  value |
+|:---------|-------:|
+| RMSE     | 116.13 |
+| Rsquared |   0.57 |
+| MAE      |  76.14 |
+
+Regression Tree Prediction Results
+
+Boosted Tree Model
+------------------
+
+An ensemble Boosted Tree model is used for the second prediction. All
+variables are considered for the training fits using a 50 fold cross
+validation control. Folds of 10, 100, 170 were also used and 50 provided
+the best intersection of lower RMSE at reasonable computational
+cost(time). An initial training fit with system generated controls for
+shrinkage, n-trees, and interaction depth was run. A tuning grid was
+created to see if these controls could be improved and a 2nd fit was
+trained. The 2nd fit did not improve over the computer generated “best
+model” so that model was used as the final model for prediction on the
+test data set.
+
+### Initial Boosted Fit
+
+    # Train program defined tuning controls
+    boostedFit <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
+                       c("center", "scale"), trControl = 
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE)
+
+    # output the results                
+    kable(round(boostedFit$results, digits = 2))
+
+|     | shrinkage | interaction.depth | n.minobsinnode | n.trees |   RMSE | Rsquared |   MAE | RMSESD | RsquaredSD | MAESD |
+|:----|----------:|------------------:|---------------:|--------:|-------:|---------:|------:|-------:|-----------:|------:|
+| 1   |       0.1 |                 1 |             10 |      50 | 119.62 |     0.58 | 84.81 |  20.83 |       0.11 | 11.74 |
+| 4   |       0.1 |                 2 |             10 |      50 | 110.69 |     0.63 | 76.48 |  19.53 |       0.11 | 10.94 |
+| 7   |       0.1 |                 3 |             10 |      50 | 108.25 |     0.65 | 74.85 |  19.71 |       0.11 | 11.48 |
+| 2   |       0.1 |                 1 |             10 |     100 | 115.79 |     0.60 | 82.83 |  20.10 |       0.11 | 12.06 |
+| 5   |       0.1 |                 2 |             10 |     100 | 107.79 |     0.65 | 75.06 |  19.12 |       0.10 | 11.13 |
+| 8   |       0.1 |                 3 |             10 |     100 | 107.06 |     0.65 | 74.56 |  19.51 |       0.11 | 12.04 |
+| 3   |       0.1 |                 1 |             10 |     150 | 114.10 |     0.61 | 82.33 |  19.93 |       0.11 | 12.63 |
+| 6   |       0.1 |                 2 |             10 |     150 | 107.00 |     0.65 | 74.96 |  19.30 |       0.11 | 11.66 |
+| 9   |       0.1 |                 3 |             10 |     150 | 106.36 |     0.66 | 74.19 |  19.14 |       0.10 | 11.87 |
+
+### Tuned Boosted Fit
+
+    # grid of tuning parameters
+    gbm_grid <- expand.grid(n.trees = c(200, 250),
+                            interaction.depth = (4),
+                            shrinkage = c(.1, .2), 
+                            n.minobsinnode = 10)
+
+    # train user defined tuning controls using grid
+    boostedFitX <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
+                       c("center", "scale"), trControl = 
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE,
+                       tuneGrid = expand.grid(gbm_grid))
+
+    # output results
+    kable(round(boostedFitX$results, digits = 2))
+
+|     | shrinkage | interaction.depth | n.minobsinnode | n.trees |   RMSE | Rsquared |   MAE | RMSESD | RsquaredSD | MAESD |
+|:----|----------:|------------------:|---------------:|--------:|-------:|---------:|------:|-------:|-----------:|------:|
+| 1   |       0.1 |                 4 |             10 |     200 | 106.37 |     0.66 | 73.82 |  16.04 |        0.1 |  9.69 |
+| 3   |       0.2 |                 4 |             10 |     200 | 107.94 |     0.65 | 74.97 |  16.39 |        0.1 | 10.05 |
+| 2   |       0.1 |                 4 |             10 |     250 | 106.69 |     0.66 | 74.01 |  15.48 |        0.1 |  9.58 |
+| 4   |       0.2 |                 4 |             10 |     250 | 108.85 |     0.64 | 75.54 |  16.03 |        0.1 |  9.90 |
+
+### Final Boosted Model
+
+    # grid of final model parameters
+    gbm_grid1 <- expand.grid(n.trees = 150,
+                            interaction.depth = 3,
+                            shrinkage = .1, 
+                            n.minobsinnode = 10)
+
+    # train final model
+    boostedFinal <- train(rentals ~ ., data = bikeTrain1,
+                       method = "gbm", preProcess =
+                       c("center", "scale"), trControl = 
+                       trainControl(method = "cv", 
+                       number = 50), verbose = FALSE,
+                       tuneGrid = expand.grid(gbm_grid1))
+
+    # output results
+    boostedFinal$finalModel
+
+    ## A gradient boosted model with gaussian loss function.
+    ## 150 iterations were performed.
+    ## There were 12 predictors of which 11 had non-zero influence.
+
+### Prediction
+
+    # predict using final model on test data
+    boostedPred <- predict(boostedFinal, newdata = bikeTest1)
+
+    # create tibble of prediction results
+    boostedPred_results <- as_tibble(postResample(boostedPred, bikeTest1$rentals))
+
+    # round results
+    boostedPred_results$value <- round(boostedPred_results$value, digits = 2)
+
+    # rename rows for output
+    setattr(boostedPred_results, "row.names", c("RMSE", "Rsquared", "MAE"))
+
+    # output prediction results
+    kable(boostedPred_results, caption = "Boosted Tree Prediction Results")
+
+|          |  value |
+|:---------|-------:|
+| RMSE     | 104.69 |
+| Rsquared |   0.65 |
+| MAE      |  69.67 |
+
+Boosted Tree Prediction Results
+
+Prediction Discussion
+---------------------
+
+Both models produced similar RMSE results with the Boosted Tree model
+slightly outperforming the Regression Tree model. Advantages of
+Regression Tree model - fewer trees/less complex. Disadvantage of
+Regression Tree - more computational intensive using LOOC and multiple
+model variations had to be run to determine the best fit. Advantages of
+Boosted Tree model - less computational expensive and produced a better
+result for a relatively “light” fold count. Disadvantage - more coding
+to set up tuning grid options and final model is more complex than the
+R-Tree.

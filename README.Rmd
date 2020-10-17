@@ -4,13 +4,15 @@ author: "Todd Idol"
 date: "10/16/2020"
 output: 
    github_document:
-    toc: true
-    toc_depth: 2
+     toc: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, eval = TRUE)
 ```
+# Description
+
+This repo includes files (Rmd, md, images...) for a Bike Rental Analysis project built in RStudio. The project analyzes 2 years of bike rental data and employees a regression tree model and boosted regression tree model to predict bike rentals for each day of the week based on a set of categorical & quantitative variables (e.g. hour of the day, weather conditions, temperature, humidity...)
 
 # Project Repo
 
@@ -26,9 +28,9 @@ Find the project repo [here](https://github.com/tkidol/ST558-Project-2).
 
 +  The analysis for [Wednesday is available here](Wedesdaynalysis.md).  
 
-+ The analysis for [Thursday is available here](ThursdayAnalysis.md).  
++  The analysis for [Thursday is available here](ThursdayAnalysis.md).  
 
-+ The analysis for [Friday is available here](FridayAnalysis.md).  
++  The analysis for [Friday is available here](FridayAnalysis.md).  
 
 +  The analysis for [Saturday is available here](SaturdayAnalysis.md).
 
@@ -44,7 +46,15 @@ Key to the project for the Rmd file itself including the knitr:: functions for c
 
 ## Caret
 
-Used to create standardized train/test data & create controls and tuning for LM & GLM analysis
+Creates standardized train/test data, create controls and tuning parameters and execute the regression/boosted regression tree analysis
+
+## GBM
+
+Used by caret package to execute the generalized boosted regression model for prediction
+
+## Data Table
+
+Used for setattr function to change row names in prediction outpu
 
 # Render Code
 

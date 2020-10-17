@@ -3,13 +3,26 @@ README
 Todd Idol
 10/16/2020
 
+-   [Description](#description)
 -   [Project Repo](#project-repo)
 -   [Weekly Analysis](#weekly-analysis)
 -   [Packages](#packages)
     -   [Tidyverse](#tidyverse)
     -   [Rmarkdown](#rmarkdown)
     -   [Caret](#caret)
+    -   [GBM](#gbm)
+    -   [Data Table](#data-table)
 -   [Render Code](#render-code)
+
+Description
+===========
+
+This repo includes files (Rmd, md, images…) for a Bike Rental Analysis
+project built in RStudio. The project analyzes 2 years of bike rental
+data and employees a regression tree model and boosted regression tree
+model to predict bike rentals for each day of the week based on a set of
+categorical & quantitative variables (e.g. hour of the day, weather
+conditions, temperature, humidity…)
 
 Project Repo
 ============
@@ -54,8 +67,19 @@ output through render()
 Caret
 -----
 
-Used to create standardized train/test data & create controls and tuning
-for LM & GLM analysis
+Creates standardized train/test data, create controls and tuning
+parameters and execute the regression/boosted regression tree analysis
+
+GBM
+---
+
+Used by caret package to execute the generalized boosted regression
+model for prediction
+
+Data Table
+----------
+
+Used for setattr function to change row names in prediction outpu
 
 Render Code
 ===========
